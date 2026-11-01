@@ -1,0 +1,14 @@
+# Wynik build.ps1
+build/
+# Oryginalne archiwa z SourceForge (rozpakowane w src\ i dist-1.2.6\)
+_pobrane/
+*.class
+# Kopie zapasowe edytora NetBeans ze zrodel autora
+*~
+*.bak
+.idea/
+nbproject/private/
+.claude/gpt-review/
+# Projekt NetBeans: pliki generowane przez NetBeans przy otwarciu (zrodlo: skrypty/netbeans-projekt.ps1)
+nbproject/build-impl.xml
+nbproject/genfiles.properties

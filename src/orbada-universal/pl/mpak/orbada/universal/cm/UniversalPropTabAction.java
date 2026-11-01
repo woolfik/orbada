@@ -1,0 +1,72 @@
+/*
+ * To change this template, choose Tools | Templates
+ * and open the template in the editor.
+ */
+
+package pl.mpak.orbada.universal.cm;
+
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
+import pl.mpak.orbada.gui.ITabObjectInfo;
+import pl.mpak.orbada.gui.comps.table.ViewTable;
+import pl.mpak.orbada.plugins.ComponentAction;
+import pl.mpak.orbada.universal.OrbadaUniversalPlugin;
+import pl.mpak.sky.gui.mr.ModalResult;
+import pl.mpak.sky.gui.swing.MessageBox;
+import pl.mpak.sky.gui.swing.SwingUtil;
+import pl.mpak.util.StringManager;
+import pl.mpak.util.StringManagerFactory;
+
+/**
+ * S³u¿y do obs³ugi standardowej akcji opartej o ViewTable
+ * Pobiera wszystkie ptrzebne obiekty i przekazuje je do doAction
+ * @author akaluza
+ */
+public abstract class UniversalPropTabAction extends ComponentAction {
+
+  private final StringManager stringManager = StringManagerFactory.getStringManager(OrbadaUniversalPlugin.class);
+
+  public UniversalPropTabAction() {
+    super();
+    addActionListener(createActionListener());
+  }
+  
+  /**
+   * wykonanie akcji
+   * sprawdza czy jest wybrany jakiœ element na gridzie wiêc wystarczy pobraæ wartoœæi fieldByName()
+   * jeœli funkcja zwróci true wtedy odœwierza listê
+   * @param query
+   * @param vt
+   * @param ip
+   * @return
+   * @throws Exception 
+   */
+  protected abstract boolean doAction(ViewTable vt, ITabObjectInfo ip) throws Exception;
+
+  private ActionListener createActionListener() {
+    return new ActionListener() {
+      @Override
+      public void actionPerformed(ActionEvent e) {
+        if (getComponent() instanceof ViewTable) {
+          ViewTable vt = (ViewTable)getComponent();
+          final ITabObjectInfo ip = (ITabObjectInfo)SwingUtil.getOwnerComponent(ITabObjectInfo.class, getComponent());
+          if (vt.getSelectedRow() >= 0) {
+            try {
+              vt.getQuery().getRecord(vt.getSelectedRow());
+              if (doAction(vt, ip)) {
+                java.awt.EventQueue.invokeLater(new Runnable() {
+                  public void run() {
+                    ip.refresh();
+                  }
+                });
+              }
+            } catch (Exception ex) {
+              MessageBox.show(stringManager.getString("error"), ex.getMessage(), ModalResult.OK);
+            }
+          }
+        }
+      }
+    };
+  }
+
+}
