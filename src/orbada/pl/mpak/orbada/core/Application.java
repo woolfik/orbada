@@ -190,6 +190,8 @@ public class Application implements IApplication, WindowListener {
     generatorList = new HashMap<String, IGenerator>();
     webAppAccessibilities = new WebAppAccessibilities();
     initExceptionUtil();
+    // ORBADA 1.3.2: tryb diagnostyczny (orbada-diag.bat, -Dorbada.diag)
+    Diagnostics.startIfRequested(getConfigPath());
     InternalDatabase.init();
     java.awt.EventQueue.invokeLater(new Runnable() {
       @Override
@@ -373,6 +375,21 @@ public class Application implements IApplication, WindowListener {
     try {
       if (SystemUtil.isMacOs()) {
         System.setProperty("apple.laf.useScreenMenuBar", "true");
+      }
+      // Cien pod menu z JGoodies Looks (takze kopie w Substance i JMeld) odwoluje sie do javax.swing.JApplet,
+      // usunietego z JDK 26 - rozwijanie menu konczyloby sie NoClassDefFoundError. Wlasciwosc systemowa ma
+      // pierwszenstwo przed ustawieniem z opcji wygladu, wiec jest wymuszana takze wtedy, gdy podano -D...=true
+      try {
+        Class.forName("javax.swing.JApplet", false, Application.class.getClassLoader());
+      } catch (ClassNotFoundException | LinkageError | SecurityException ex) {
+        if ("true".equalsIgnoreCase(System.getProperty("jgoodies.popupDropShadowEnabled"))) {
+          Logger.getLogger("orbada").warn("jgoodies.popupDropShadowEnabled=true ignored: javax.swing.JApplet not available");
+        }
+        try {
+          System.setProperty("jgoodies.popupDropShadowEnabled", "false");
+        } catch (SecurityException se) {
+          Logger.getLogger("orbada").warn("Cannot set jgoodies.popupDropShadowEnabled=false", se);
+        }
       }
       String orbadaLafClassName = localProperties.getProperty(Consts.lookAndFeelLocalClass, getProperty(Consts.lookAndFeelLocalClass));
       if (!StringUtil.isEmpty(orbadaLafClassName)) {

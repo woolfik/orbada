@@ -6,6 +6,7 @@ import java.awt.GridBagLayout;
 import java.awt.Insets;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.TimeZone;
 import java.util.regex.Pattern;
 import javax.swing.BorderFactory;
@@ -55,6 +56,8 @@ abstract class SchedulerWizard {
   protected final Database database;
   protected final String schema;
   private final List<Page> pages = new ArrayList<Page>();
+  /** Edycja istniejacego obiektu: nazwa ze slownika (z zachowaniem wielkosci liter); null - nowy obiekt */
+  private String editName;
 
   SchedulerWizard(Database database, String schema) {
     this.database = database;
@@ -79,10 +82,55 @@ abstract class SchedulerWizard {
     return "jobs".equals(specId) || "programs".equals(specId) || "schedules".equals(specId) || "chains".equals(specId);
   }
 
+  /** Edycja: job, program, harmonogram (chain - kroki i reguly - tylko nowy) */
+  static boolean supportsEdit(String specId) {
+    return "jobs".equals(specId) || "programs".equals(specId) || "schedules".equals(specId);
+  }
+
+  /**
+   * Kreator wypelniony obiektem ze slownika; na koncu kod ze zmienionymi atrybutami (SET_ATTRIBUTE).
+   * @throws IllegalArgumentException z komunikatem, gdy obiektu nie da sie edytowac w kreatorze
+   */
+  static SchedulerWizard edit(String specId, Database database, String owner, String name) {
+    SchedulerWizard wizard = supportsEdit(specId) ? create(specId, database, owner) : null;
+    if (wizard == null) {
+      return null;
+    }
+    wizard.editName = name;
+    wizard.load(name);
+    return wizard;
+  }
+
+  final boolean isEdit() {
+    return editName != null;
+  }
+
+  /**
+   * Wypelnia strony obiektem ze slownika (schemat kreatora, nazwa jak w slowniku) i zapamietuje stan wyjsciowy.
+   * @throws IllegalArgumentException z komunikatem dla uzytkownika
+   */
+  void load(String name) {
+    throw new IllegalArgumentException(text("SchedWiz-err-edit-unsupported", name));
+  }
+
   abstract String getTitleKey();
 
+  String getTitle() {
+    return isEdit() ? text(getTitleKey() + "-edit", SQLUtil.createSqlName(schema, editName)) : text(getTitleKey());
+  }
+
   /** Nazwa tworzonego obiektu tak, jak zapisze ja slownik (do zaznaczenia na liscie po utworzeniu) */
-  abstract String getObjectName();
+  String getObjectName() {
+    return isEdit() ? editName : ident(getTypedName());
+  }
+
+  /** Nazwa wpisana na stronie ogolnej */
+  abstract String getTypedName();
+
+  /** Literal z pelna nazwa obiektu dla wywolan DBMS_SCHEDULER */
+  final String nameLit() {
+    return lit(isEdit() ? SQLUtil.createSqlName(schema, editName) : qualified(getTypedName()));
+  }
 
   abstract String buildPlsql();
 
@@ -102,7 +150,7 @@ abstract class SchedulerWizard {
     return database;
   }
 
-  /** Pokazuje kreator (modalnie); true, gdy obiekt utworzono */
+  /** Pokazuje kreator (modalnie); true, gdy obiekt utworzono albo zmieniono */
   final boolean show(Component parent) {
     SchedulerWizardDialog dialog = new SchedulerWizardDialog(parent, this);
     dialog.setVisible(true);
@@ -201,6 +249,102 @@ abstract class SchedulerWizard {
       first = false;
     }
     return sb.append(");\n").toString();
+  }
+
+  static String setAttribute(String name, String attribute, String value) {
+    return "  dbms_scheduler.set_attribute(" + name + ", " + lit(attribute) + ", " + value + ");\n";
+  }
+
+  /**
+   * Edycja: SET_ATTRIBUTE dla atrybutow rozniacych sie od wczytanych (wartosc "null" - SET_ATTRIBUTE_NULL).
+   * Zerowane ida pierwsze: Oracle nie ustawi np. PROGRAM_NAME, dopoki JOB_TYPE/JOB_ACTION/NUMBER_OF_ARGUMENTS
+   * maja wartosc, ani SCHEDULE_NAME przy ustawionym REPEAT_INTERVAL (ORA-27488, sprawdzone na 26ai).
+   */
+  static String changedAttributes(String name, Map<String, String> before, Map<String, String> after) {
+    StringBuilder nulls = new StringBuilder();
+    StringBuilder sets = new StringBuilder();
+    for (Map.Entry<String, String> e : after.entrySet()) {
+      if (e.getValue().equals(before.get(e.getKey()))) {
+        continue;
+      }
+      if ("null".equals(e.getValue())) {
+        nulls.append("  dbms_scheduler.set_attribute_null(").append(name).append(", ").append(lit(e.getKey())).append(");\n");
+      } else {
+        sets.append(setAttribute(name, e.getKey(), e.getValue()));
+      }
+    }
+    return nulls.append(sets).toString();
+  }
+
+  /**
+   * Blok edycji: zmiany na wylaczonym obiekcie (NUMBER_OF_ARGUMENTS i argumenty tylko tak), potem wlaczenie
+   * zgodnie z polem "Wlaczony"; force - dzialajace uruchomienie konczy sie normalnie.
+   * @param extra wywolania na koncu, po wlaczeniu (np. uruchomienie joba); moze byc puste
+   */
+  static String editBlock(String name, String changes, boolean wasEnabled, boolean enabled, String extra) {
+    StringBuilder sb = new StringBuilder("begin\n");
+    if (changes.length() > 0) {
+      if (wasEnabled) {
+        sb.append("  dbms_scheduler.disable(").append(name).append(", force => true);\n");
+      }
+      sb.append(changes);
+      if (enabled) {
+        sb.append("  dbms_scheduler.enable(").append(name).append(");\n");
+      }
+    } else if (enabled != wasEnabled) {
+      sb.append("  dbms_scheduler.").append(enabled ? "enable" : "disable").append("(").append(name).append(");\n");
+    }
+    sb.append(extra);
+    if (sb.length() == "begin\n".length()) {
+      sb.append("  null; -- ").append(text("SchedWiz-no-changes")).append("\n");
+    }
+    return sb.append("end;").toString();
+  }
+
+  /** Data ze slownika jako "RRRR-MM-DD GG:MM" w strefie uzytkownika (jak w polach kreatora) */
+  static String dateColumn(String column) {
+    return "to_char(" + column + " at time zone (:TZ), 'YYYY-MM-DD HH24:MI') " + column;
+  }
+
+  /** Nazwa obiektu ze slownika: w schemacie kreatora sama nazwa, z innego OWNER.NAZWA */
+  String objectRef(String owner, String name) {
+    if (name == null || name.length() == 0) {
+      return "";
+    }
+    return owner == null || owner.equals(schema) ? name : owner + "." + name;
+  }
+
+  /** Jeden wiersz slownika dla edytowanego obiektu (:OWNER, :NAME, :TZ); kolumny wielkimi literami */
+  Map<String, String> loadRow(String sql, String name) {
+    Map<String, String> row = new java.util.HashMap<String, String>();
+    Query q = database.createQuery();
+    try {
+      q.setSqlText(sql);
+      q.paramByName("OWNER").setString(schema);
+      q.paramByName("NAME").setString(name);
+      if (q.getParameterList().findParamByName("TZ") != null) {
+        q.paramByName("TZ").setString(timeZone());
+      }
+      q.open();
+      if (q.eof()) {
+        throw new IllegalArgumentException(text("SchedWiz-err-not-found", SQLUtil.createSqlName(schema, name)));
+      }
+      for (int i = 0; i < q.getFieldCount(); i++) {
+        pl.mpak.util.variant.Variant v = q.getField(i).getValue();
+        row.put(q.getField(i).getFieldName().toUpperCase(), v.isNullValue() ? null : v.getString());
+      }
+    } catch (IllegalArgumentException ex) {
+      throw ex;
+    } catch (Exception ex) {
+      throw new IllegalArgumentException(ex.getMessage(), ex);
+    } finally {
+      q.close();
+    }
+    return row;
+  }
+
+  static String nvl(String s) {
+    return s == null ? "" : s;
   }
 
   // --- listy z bazy

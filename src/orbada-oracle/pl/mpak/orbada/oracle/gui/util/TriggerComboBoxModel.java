@@ -54,7 +54,7 @@ public class TriggerComboBoxModel extends DefaultComboBoxModel {
     else {
       list = info.getObjectInfo("/SCHEMAS/" +this.schemaName +"/TRIGGERS");
     }
-    list.saveRefresh();
+    pl.mpak.orbada.gui.util.DbWork.refresh(list); // ORBADA 1.3.2: zapytanie poza watkiem GUI
     if (list instanceof DbObjectContainer) {
       for (DbObjectIdentified i : ((DbObjectContainer)list).objectsArray(true)) {
         addElement(i);

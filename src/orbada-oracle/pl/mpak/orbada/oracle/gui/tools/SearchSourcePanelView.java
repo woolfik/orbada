@@ -214,7 +214,7 @@ public class SearchSourcePanelView extends javax.swing.JPanel implements Closeab
                 syntaxSource.setDatabaseObject(currentSchemaName, objectType, objectName, cacheSource.get(object));
               }
               else {
-                new SourceCreator(getDatabase(), syntaxSource).getSource(currentSchemaName, objectType, objectName);
+                new SourceCreator(getDatabase(), syntaxSource).setAsync(false).getSource(currentSchemaName, objectType, objectName);
                 java.awt.EventQueue.invokeLater(new Runnable() {
                   public void run() {
                     cacheSource.put(object, syntaxSource.getText());

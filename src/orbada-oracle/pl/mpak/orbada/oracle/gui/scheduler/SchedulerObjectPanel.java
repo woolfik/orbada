@@ -93,6 +93,17 @@ class SchedulerObjectPanel extends JPanel {
           create();
         }
       }));
+      if (SchedulerWizard.supportsEdit(spec.id)) {
+        // przycisk wlaczany z akcjami (zaznaczony obiekt)
+        JButton edit = new JButton(new AbstractAction(stringManager.getString("SchedWiz-edit")) {
+          public void actionPerformed(ActionEvent e) {
+            edit();
+          }
+        });
+        edit.setEnabled(false);
+        actionButtons.add(edit);
+        toolBar.add(edit);
+      }
       toolBar.addSeparator();
     }
     for (final SchedulerSpec.Action a : spec.actions) {
@@ -176,6 +187,27 @@ class SchedulerObjectPanel extends JPanel {
     SchedulerWizard wizard = SchedulerWizard.create(spec.id, database, schemaName);
     if (wizard != null && wizard.show(this)) {
       refresh(wizard.getObjectName());
+    }
+  }
+
+  /** Kreator wypelniony zaznaczonym obiektem; po zapisaniu lista i szczegoly odswiezone */
+  private void edit() {
+    String owner = selectedValue("OWNER");
+    String name = selectedValue(spec.keyColumn);
+    if (name == null) {
+      return;
+    }
+    SchedulerWizard wizard;
+    try {
+      wizard = SchedulerWizard.edit(spec.id, database, owner, name);
+    } catch (IllegalArgumentException ex) {
+      MessageBox.show(this, stringManager.getString("SchedWiz-edit"), ex.getMessage(), ModalResult.OK, MessageBox.WARNING);
+      return;
+    }
+    if (wizard != null && wizard.show(this)) {
+      detailsOwner = null;
+      detailsName = null;
+      refresh(name);
     }
   }
 

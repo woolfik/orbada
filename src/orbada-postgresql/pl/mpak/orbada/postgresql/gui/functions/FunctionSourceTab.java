@@ -19,9 +19,16 @@ import pl.mpak.util.StringManagerFactory;
 public class FunctionSourceTab extends UniversalSourceTab {
 
   private final StringManager stringManager = StringManagerFactory.getStringManager(OrbadaPostgreSQLPlugin.class);
+  private String objectType;
 
   public FunctionSourceTab(IViewAccesibilities accesibilities) {
     super(accesibilities);
+  }
+
+  /** ORBADA 1.3.2: objectType PROCEDURE - zrodlo procedury */
+  public FunctionSourceTab(IViewAccesibilities accesibilities, String objectType) {
+    super(accesibilities);
+    this.objectType = objectType;
   }
 
   @Override
@@ -31,7 +38,7 @@ public class FunctionSourceTab extends UniversalSourceTab {
 
   @Override
   public void updateBody(AbsOrbadaSyntaxTextArea textArea) {
-    new SourceCreator(getDatabase(), textArea).getSource(currentSchemaName, "FUNCTION", currentObjectName, null);
+    new SourceCreator(getDatabase(), textArea).getSource(currentSchemaName, objectType == null ? "FUNCTION" : objectType, currentObjectName, null);
   }
 
   @Override

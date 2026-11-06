@@ -57,7 +57,7 @@ class SchedulerWizardDialog extends JDialog {
   SchedulerWizardDialog(Component parent, SchedulerWizard wizard) {
     super(owner(parent), ModalityType.APPLICATION_MODAL);
     this.wizard = wizard;
-    setTitle(SchedulerWizard.text(wizard.getTitleKey()));
+    setTitle(wizard.getTitle());
     setDefaultCloseOperation(DISPOSE_ON_CLOSE);
 
     pages.addAll(wizard.getPages());
@@ -162,7 +162,7 @@ class SchedulerWizardDialog extends JDialog {
       }
     });
     JPanel panel = new SchedulerWizard.Form()
-      .hint("SchedWiz-code-hint")
+      .hint(wizard.isEdit() ? "SchedWiz-code-hint-edit" : "SchedWiz-code-hint")
       .full(code, true);
     JPanel bar = new JPanel(new FlowLayout(FlowLayout.LEFT, 0, 0));
     bar.add(copy);
@@ -207,7 +207,7 @@ class SchedulerWizardDialog extends JDialog {
     p.shown();
     cards.show(center, String.valueOf(index));
     buttonBack.setEnabled(index > 0);
-    buttonNext.setText(SchedulerWizard.text(index == pages.size() - 1 ? "SchedWiz-create" : "SchedWiz-next"));
+    buttonNext.setText(SchedulerWizard.text(index < pages.size() - 1 ? "SchedWiz-next" : wizard.isEdit() ? "SchedWiz-save" : "SchedWiz-create"));
   }
 
   /** Wykonuje kod ze strony PL/SQL zwyklym JDBC - bez parsowania parametrow ":nazwa" (moga byc w akcji joba) */

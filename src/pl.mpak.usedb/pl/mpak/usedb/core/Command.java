@@ -32,7 +32,8 @@ public class Command extends ParametrizedCommand {
 
   private volatile State state = State.NONE;
   
-  private transient Statement statement;
+  // ORBADA 1.3.2: volatile - cancel() wolane z innego watku (DbWork)
+  private transient volatile Statement statement;
   private int updateCount = -1;
   private long executionTime = 0;
   private long executedTime = 0;

@@ -626,6 +626,14 @@ public class InternalDatabase extends OrbadaDatabase {
               "VALUES('20261031000000-0000000000000002-00000002',NULL,'Oracle TNS (ojdbc11)','./jdbc/ojdbc11.jar','Oracle','oracle.jdbc.OracleDriver','jdbc:oracle:thin:@{database}')");
             Logger.getLogger("orbada").info("IDE:UPDATE: Driver Oracle TNS (ojdbc11) added");
           }
+          // T6: nowy sterownik PostgreSQL (pgjdbc 42.7, logowanie SCRAM-SHA-256) - osobny wpis jak ojdbc11
+          query.open("select drv_id from drivers where drv_id = '20261101000000-0000000000000003-00000002'");
+          if (query.eof()) {
+            orbadaDatabase.executeCommand(
+              "INSERT INTO DRIVERS (DRV_ID, DRV_USR_ID, DRV_NAME, DRV_LIBRARY_SOURCE, DRV_TYPE_NAME, DRV_CLASS_NAME, DRV_URL_TEMPLATE) " +
+              "VALUES('20261101000000-0000000000000003-00000002',NULL,'PostgreSQL (pgjdbc 42)','./jdbc/postgresql.jar','PostgreSQL','org.postgresql.Driver','jdbc:postgresql://{host}:{port}[5432]/{database}')");
+            Logger.getLogger("orbada").info("IDE:UPDATE: Driver PostgreSQL (pgjdbc 42) added");
+          }
         }
       } finally {
         query.close();

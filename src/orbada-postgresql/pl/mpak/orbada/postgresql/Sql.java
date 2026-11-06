@@ -240,8 +240,8 @@ public class Sql {
   
   public static String getViewList(String filter) {
     return String.format(
-      "select schema_name, view_name, owner_name, description, accessible, quote_ident(schema_name)||'.'||quote_ident(view_name) full_object_name, view_name object_name\n" +
-      "  from (select n.nspname as schema_name, c.relname as view_name, pg_catalog.pg_get_userbyid(c.relowner) as owner_name,\n" +
+      "select schema_name, view_name, owner_name, description, accessible, quote_ident(schema_name)||'.'||quote_ident(view_name) full_object_name, view_name object_name, materialized\n" +
+      "  from (select n.nspname as schema_name, c.relname as view_name, pg_catalog.pg_get_userbyid(c.relowner) as owner_name, case when c.relkind = 'm' then 'Y' else 'N' end materialized,\n" +
       "               case\n" +
       "                 when pg_catalog.pg_has_role(c.relowner, 'USAGE') then 'USAGE'\n" +
       "                 when (select true from pg_catalog.aclexplode(c.relacl) g where grantee = 0 limit 1) then 'PUBLIC'\n" +
@@ -360,7 +360,7 @@ public class Sql {
       "  from (select ns.nspname schema_name, pg_catalog.pg_get_userbyid(c.relowner) as owner_name, con.conname constraint_name, \n" +
       "               c.relname table_name, array_to_string(array(select a.attname from pg_catalog.pg_attribute a join (select con.conkey[k] col from pg_catalog.generate_subscripts(con.conkey, 1) k) k on k.col = a.attnum and c.oid = a.attrelid), ', ') as columns,\n" +
       "               r.relname fk_table_name, array_to_string(array(select a.attname from pg_catalog.pg_attribute a join (select con.confkey[k] col from pg_catalog.generate_subscripts(con.confkey, 1) k) k on k.col = a.attnum and c.oid = a.attrelid), ', ') fk_columns,\n" +
-      "               case con.contype when 'c' then 'CHECK'::text when 'p' then 'PRIMARY KEY'::text when 'f' then 'FOREIGN KEY'::text when 'u' then 'UNIQUE'::text when 't' then 'TRIGGER'::text when 'x' then 'EXCLUDE'::text else con.contype end constraint_type,\n" +
+      "               case con.contype when 'c' then 'CHECK'::text when 'p' then 'PRIMARY KEY'::text when 'f' then 'FOREIGN KEY'::text when 'u' then 'UNIQUE'::text when 't' then 'TRIGGER'::text when 'x' then 'EXCLUDE'::text else con.contype::text end constraint_type,\n" +
       "               case when con.condeferrable then 'Y' else 'N' end \"deferrable\",\n" +
       "               case when con.condeferred then 'Y' else 'N' end \"deferred\",\n" +
       "               case when con.convalidated then 'Y' else 'N' end validated,\n" +
@@ -554,7 +554,7 @@ public class Sql {
   public static String getForeignTableSizeList() {
     return
       "select f.ftrelid, f.ftserver, n.nspname, c.relname, w.fdwname, s.srvname,\n" +
-      "       case when w.fdwname = 'cstore_fdw' then cstore_table_size(c.oid) end fdw_size_b, case when w.fdwname = 'cstore_fdw' then round(cstore_table_size(c.oid)::numeric /1024 /1024, 2) end fdw_size_mb\n" +
+      "       null::bigint fdw_size_b, null::numeric fdw_size_mb\n" +
       "  from pg_foreign_table f\n" +
       "       join pg_class c on f.ftrelid = c.oid\n" +
       "       left join pg_catalog.pg_namespace n on n.oid = c.relnamespace\n" +
@@ -568,7 +568,7 @@ public class Sql {
     return
       "select c.oid, s.relid, s.schemaname, s.relname,\n" +
       "       c.reltype, c.reloftype, c.relowner, c.relam, c.relfilenode, c.reltablespace, c.relpages, c.reltuples,\n" +
-      "       c.relhasindex, c.relisshared, c.relpersistence, c.relkind, c.relnatts, c.relchecks, c.relhasoids,\n" +
+      "       c.relhasindex, c.relisshared, c.relpersistence, c.relkind, c.relnatts, c.relchecks," +(new VersionID(version).compare(12, 0) >= 0 ? "" : " c.relhasoids,") +"\n" +
       "       " +(new VersionID(version).compare(11, 0) >= 0 ? "" : "c.relhaspkey, ") +"c.relhasrules, c.relhastriggers, c.relhassubclass, c.relfrozenxid, c.relacl, c.reloptions,\n" +
       "       s.seq_scan, s.seq_tup_read, s.idx_scan, s.idx_tup_fetch, s.n_tup_ins, s.n_tup_upd,\n" +
       "       s.n_tup_del, s.n_tup_hot_upd, s.n_live_tup, s.n_dead_tup, s.last_vacuum, s.last_autovacuum, s.last_analyze, \n" +
@@ -597,7 +597,7 @@ public class Sql {
   public static String getViewDetail(String version) {
     return
       "select c.oid, c.reltype, c.reloftype, c.relowner, c.relam, c.relfilenode, c.reltablespace, c.relpages, c.reltuples,\n" +
-      "       c.relhasindex, c.relisshared, c.relpersistence, c.relkind, c.relnatts, c.relchecks, c.relhasoids,\n" +
+      "       c.relhasindex, c.relisshared, c.relpersistence, c.relkind, c.relnatts, c.relchecks," +(new VersionID(version).compare(12, 0) >= 0 ? "" : " c.relhasoids,") +"\n" +
       "       " +(new VersionID(version).compare(11, 0) >= 0 ? "" : "c.relhaspkey, ") +"c.relhasrules, c.relhastriggers, c.relhassubclass, c.relfrozenxid, c.relacl, c.reloptions\n" +
       "  from pg_catalog.pg_class c\n" +
       "       left join pg_catalog.pg_namespace n on n.oid = c.relnamespace\n" +
@@ -1009,7 +1009,7 @@ public class Sql {
       sql = appendObjectSub(sql, 
         "-- wartoœci domyœlne\n" +
         "select 'pg_attrdef'::regclass classid, def.oid objid, 0 objsubid, tbs.spcname tablespace_name, n.nspname schema_name, pg_catalog.pg_get_userbyid(c.relowner) owner_name,\n" +
-        "       'DEFAULT VALUE' object_type, null::text object_attribute, null::text object_info, c.relname::text object_owner, def.adsrc object_name\n" +
+        "       'DEFAULT VALUE' object_type, null::text object_attribute, null::text object_info, c.relname::text object_owner, pg_catalog.pg_get_expr(def.adbin, def.adrelid) object_name\n" +
         (source ? "       , null::text source\n" : "") +
         "  from pg_catalog.pg_attrdef def\n" +
         "       join pg_class c on c.oid = def.adrelid\n" +
@@ -1088,7 +1088,7 @@ public class Sql {
       "               left join pg_catalog.pg_namespace n on f.pronamespace = n.oid\n" +
       "               left join pg_catalog.pg_type t on f.prorettype = t.oid\n" +
       "               left join pg_catalog.pg_description d on d.classoid = f.tableoid and d.objoid = f.oid and d.objsubid = 0\n" +
-      "         where (t.typname = 'trigger' and :TRIGGER = 'Y') or (t.typname <> 'trigger' and :TRIGGER = 'N') and " +(new VersionID(version).compare(11, 0) < 0 ? "not f.proisagg" : "f.prokind <> 'a'") +") f\n" +
+      "         where (t.typname = 'trigger' and :TRIGGER = 'Y') or (t.typname <> 'trigger' and :TRIGGER = 'N') and " +(new VersionID(version).compare(11, 0) < 0 ? "not f.proisagg" : "f.prokind in ('f', 'w')") +") f\n" +
       " where (schema_name = :SCHEMA_NAME or (schema_name = any (current_schemas(false)) and :SCHEMA_NAME = current_schema() and schema_name <> 'public'))\n" +
       "%s" +
       " order by schema_name, function_name, arguments",
@@ -1096,6 +1096,34 @@ public class Sql {
       );
   }
   
+  /** ORBADA 1.3.2: procedury (PostgreSQL 11+, prokind = 'p') - kolumny jak w getFunctionList dla zakladek funkcji */
+  public static String getProcedureList(String filter) {
+    return String.format(
+      "select *\n" +
+      "  from (select n.nspname schema_name, pg_get_userbyid(f.proowner) owner_name, l.lanname lang_name, \n" +
+      "               f.proname function_name, pg_get_function_arguments(f.oid) arguments,\n" +
+      "               f.proname||'('||coalesce(pg_get_function_identity_arguments(f.oid), '')||')' full_function_name,\n" +
+      "               f.proname||'('||coalesce(pg_get_function_identity_arguments(f.oid), '')||')' object_name,\n" +
+      "               quote_ident(n.nspname)||'.'||quote_ident(f.proname)||'('||coalesce(pg_get_function_identity_arguments(f.oid), '')||')' full_object_name,\n" +
+      "               case when f.prosecdef then 'Y' else 'N' end security_definer,\n" +
+      "               case\n" +
+      "                 when pg_catalog.pg_has_role(f.proowner, 'USAGE') then 'USAGE'\n" +
+      "                 when pg_catalog.has_function_privilege('public', f.oid, 'EXECUTE') then 'PUBLIC'\n" +
+      "                 when pg_catalog.has_function_privilege(f.oid, 'EXECUTE') then 'GRANTED'\n" +
+      "               else 'NO' end accessible,\n" +
+      "               description\n" +
+      "          from pg_catalog.pg_proc f\n" +
+      "               join pg_catalog.pg_language l on f.prolang = l.oid\n" +
+      "               left join pg_catalog.pg_namespace n on f.pronamespace = n.oid\n" +
+      "               left join pg_catalog.pg_description d on d.classoid = f.tableoid and d.objoid = f.oid and d.objsubid = 0\n" +
+      "         where f.prokind = 'p') f\n" +
+      " where (schema_name = :SCHEMA_NAME or (schema_name = any (current_schemas(false)) and :SCHEMA_NAME = current_schema() and schema_name <> 'public'))\n" +
+      "%s" +
+      " order by schema_name, function_name, arguments",
+      new Object[]{filter != null ? "   and " + filter + "\n" : ""}
+      );
+  }
+
   public static String getFunctionArgumentList(String filter) {
     return String.format(
       "select *\n" +

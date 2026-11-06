@@ -47,8 +47,22 @@ public abstract class JGoodiesLookAndFeelStarter implements ILookAndFeelStarter 
     }
   }
 
+  /**
+   * Cien pod menu (ShadowPopup z JGoodies Looks 2.3) odwoluje sie do javax.swing.JApplet, usunietego z JDK 26 -
+   * bez tej klasy rozwijanie menu konczy sie NoClassDefFoundError, wiec cien jest wtedy wylaczany.
+   */
+  public static boolean isPopupDropShadowSupported() {
+    try {
+      Class.forName("javax.swing.JApplet", false, JGoodiesLookAndFeelStarter.class.getClassLoader());
+      return true;
+    } catch (ClassNotFoundException | LinkageError | SecurityException ex) {
+      return false;
+    }
+  }
+
   protected void applyOptions() {
-    Options.setPopupDropShadowEnabled(StringUtil.toBoolean(properties.getProperty(set_PopupDropShadowEnabled, "true")));
+    Options.setPopupDropShadowEnabled(isPopupDropShadowSupported() &&
+      StringUtil.toBoolean(properties.getProperty(set_PopupDropShadowEnabled, "true")));
     Options.setTabIconsEnabled(StringUtil.toBoolean(properties.getProperty(set_TabIconsEnabled, "true")));
     Options.setUseNarrowButtons(StringUtil.toBoolean(properties.getProperty(set_UseNarrowButtons, "true")));
     Options.setUseSystemFonts(StringUtil.toBoolean(properties.getProperty(set_UseSystemFonts, "true")));

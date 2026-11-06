@@ -5,6 +5,7 @@ import java.awt.CardLayout;
 import java.awt.FlowLayout;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import javax.swing.ButtonGroup;
 import javax.swing.JButton;
 import javax.swing.JCheckBox;
@@ -373,13 +374,220 @@ class SchedulerJobWizard extends SchedulerWizard {
   }
 
   @Override
-  String getObjectName() {
-    return ident(textName.getText());
+  String getTypedName() {
+    return textName.getText();
+  }
+
+  // --- edycja
+
+  /** Stan wczytany ze slownika: atrybuty, wartosci argumentow (z rodzajem akcji) i wlaczenie */
+  private Map<String, String> loadedAttributes;
+  private List<String> loadedArguments;
+  private boolean loadedEnabled;
+
+  @Override
+  void load(String name) {
+    Map<String, String> r = loadRow("select job_type, job_action, program_owner, program_name, schedule_type,\n"
+      + "       schedule_owner, schedule_name, " + dateColumn("start_date") + ", repeat_interval, " + dateColumn("end_date") + ",\n"
+      + "       job_class, enabled, auto_drop, comments, credential_owner, credential_name, max_failures, max_runs,\n"
+      + "       job_priority, restartable, logging_level\n"
+      + "  from all_scheduler_jobs where owner = :OWNER and job_name = :NAME", name);
+    textName.setText(name);
+    textName.setEditable(false);
+    textComments.setText(nvl(r.get("COMMENTS")));
+    comboClass.setSelectedItem(nvl(r.get("JOB_CLASS")));
+    checkEnabled.setSelected("TRUE".equals(r.get("ENABLED")));
+    checkAutoDrop.setSelected("TRUE".equals(r.get("AUTO_DROP")));
+
+    int action;
+    if (r.get("PROGRAM_NAME") != null) {
+      action = A_PROGRAM;
+      comboProgram.setSelectedItem(objectRef(r.get("PROGRAM_OWNER"), r.get("PROGRAM_NAME")));
+    } else {
+      action = java.util.Arrays.asList(actions).indexOf(r.get("JOB_TYPE"));
+      if (action < 0 || action == A_PROGRAM) {
+        throw new IllegalArgumentException(text("SchedWiz-err-edit-type", nvl(r.get("JOB_TYPE"))));
+      }
+      String jobAction = nvl(r.get("JOB_ACTION"));
+      if (action == A_PLSQL_BLOCK) {
+        textBlock.setText(jobAction);
+      } else if (action == A_STORED_PROCEDURE) {
+        comboProcedure.setSelectedItem(jobAction);
+      } else if (action == A_CHAIN) {
+        comboChain.setSelectedItem(jobAction);
+      } else {
+        textExecutable.setText(jobAction);
+        comboCredential.setSelectedItem(objectRef(r.get("CREDENTIAL_OWNER"), r.get("CREDENTIAL_NAME")));
+      }
+    }
+    radioAction[action].setSelected(true);
+    actionCards.show(actionPanel, actions[action]);
+
+    String scheduleType = nvl(r.get("SCHEDULE_TYPE"));
+    int when;
+    if ("NAMED".equals(scheduleType)) {
+      when = W_SCHEDULE;
+      comboSchedule.setSelectedItem(objectRef(r.get("SCHEDULE_OWNER"), r.get("SCHEDULE_NAME")));
+    } else if ("WINDOW".equals(scheduleType) || "WINDOW_GROUP".equals(scheduleType)) {
+      when = W_WINDOW;
+      comboWindow.setSelectedItem(objectRef(r.get("SCHEDULE_OWNER"), r.get("SCHEDULE_NAME")));
+    } else if ("CALENDAR".equals(scheduleType) || "PLSQL".equals(scheduleType)) {
+      when = W_CALENDAR;
+      calendar.setValues(r.get("REPEAT_INTERVAL"), r.get("START_DATE"), r.get("END_DATE"));
+    } else if ("ONCE".equals(scheduleType)) {
+      when = W_ONCE;
+      textOnce.setText(nvl(r.get("START_DATE")));
+    } else if ("IMMEDIATE".equals(scheduleType)) {
+      when = W_IMMEDIATE;
+    } else {
+      throw new IllegalArgumentException(text("SchedWiz-err-edit-schedule", scheduleType));
+    }
+    radioWhen[when].setSelected(true);
+    whenCards.show(whenPanel, whens[when]);
+
+    spinMaxFailures.setValue(number(r.get("MAX_FAILURES"), 0));
+    spinMaxRuns.setValue(number(r.get("MAX_RUNS"), 0));
+    spinPriority.setValue(Math.max(1, Math.min(5, number(r.get("JOB_PRIORITY"), 3))));
+    checkRestartable.setSelected("TRUE".equals(r.get("RESTARTABLE")));
+    // LOGGING_LEVEL w slowniku: OFF, FAILED RUNS, RUNS, FULL
+    String logging = "logging_" + nvl(r.get("LOGGING_LEVEL")).toLowerCase().replace(' ', '_');
+    comboLogging.setSelectedIndex(Math.max(0, java.util.Arrays.asList(loggingLevels).indexOf(logging)));
+
+    // argumenty: deklaracja procedury/programu, wartosci z ALL_SCHEDULER_JOB_ARGS
+    loadArguments();
+    Query q = database.createQuery();
+    try {
+      q.setSqlText("select argument_position, value from all_scheduler_job_args\n"
+        + " where owner = :OWNER and job_name = :NAME order by argument_position");
+      q.paramByName("OWNER").setString(schema);
+      q.paramByName("NAME").setString(name);
+      q.open();
+      while (!q.eof()) {
+        int pos = q.fieldByName("ARGUMENT_POSITION").getValue().getInteger();
+        Variant v = q.fieldByName("VALUE").getValue();
+        String value = v.isNullValue() ? "" : v.getString();
+        if (action == A_EXECUTABLE) {
+          while (args.getRowCount() < pos) {
+            args.addRow(new Object[] {"", "VARCHAR2", "", ""});
+            argDefaulted.add(Boolean.FALSE);
+          }
+        }
+        if (pos >= 1 && pos <= args.getRowCount()) {
+          args.table.getModel().setValueAt(value, pos - 1, 3);
+        }
+        q.next();
+      }
+    } catch (Exception ex) {
+      ExceptionUtil.processException(ex);
+    } finally {
+      q.close();
+    }
+
+    loadedAttributes = attributes();
+    loadedArguments = argumentValues();
+    loadedEnabled = checkEnabled.isSelected();
+  }
+
+  private static int number(String s, int def) {
+    try {
+      return s == null ? def : Integer.parseInt(s.trim());
+    } catch (NumberFormatException ex) {
+      return def;
+    }
+  }
+
+  /**
+   * Atrybuty joba w postaci literalow PL/SQL ("null" - brak wartosci); te nieuzywane przez wybrany rodzaj
+   * akcji i harmonogramu sa "null", zeby przy zmianie rodzaju zostaly wyzerowane przed ustawieniem nowych.
+   */
+  private Map<String, String> attributes() {
+    Map<String, String> m = new java.util.LinkedHashMap<String, String>();
+    int action = action();
+    boolean program = action == A_PROGRAM;
+    m.put("program_name", program ? lit(reference(actionText())) : "null");
+    m.put("job_type", program ? "null" : lit(actions[action]));
+    m.put("job_action", program ? "null" : lit(action == A_CHAIN ? reference(actionText()) : actionText()));
+    m.put("number_of_arguments", program ? "null"
+      : String.valueOf(action == A_STORED_PROCEDURE ? argumentCount() : action == A_EXECUTABLE ? args.getRowCount() : 0));
+    int when = when();
+    m.put("schedule_name", when == W_SCHEDULE ? lit(reference(comboText(comboSchedule)))
+      : when == W_WINDOW ? lit(reference(comboText(comboWindow))) : "null");
+    m.put("start_date", when == W_ONCE ? timestampLit(fieldText(textOnce))
+      : when == W_CALENDAR ? timestampLit(calendar.getStart()) : "null");
+    m.put("repeat_interval", when == W_CALENDAR ? lit(calendar.getExpression()) : "null");
+    m.put("end_date", when == W_CALENDAR && calendar.getEnd().length() > 0 ? timestampLit(calendar.getEnd()) : "null");
+    m.put("job_class", lit(comboText(comboClass).length() == 0 ? "DEFAULT_JOB_CLASS" : comboText(comboClass)));
+    m.put("auto_drop", checkAutoDrop.isSelected() ? "true" : "false");
+    m.put("comments", lit(fieldText(textComments)));
+    m.put("credential_name", action == A_EXECUTABLE && comboText(comboCredential).length() > 0
+      ? lit(reference(comboText(comboCredential))) : "null");
+    int maxFailures = ((Number)spinMaxFailures.getValue()).intValue();
+    m.put("max_failures", maxFailures > 0 ? String.valueOf(maxFailures) : "null");
+    int maxRuns = ((Number)spinMaxRuns.getValue()).intValue();
+    m.put("max_runs", maxRuns > 0 ? String.valueOf(maxRuns) : "null");
+    m.put("job_priority", String.valueOf(((Number)spinPriority.getValue()).intValue()));
+    m.put("restartable", checkRestartable.isSelected() ? "true" : "false");
+    String logging = loggingLevels[comboLogging.getSelectedIndex()];
+    // "domyslny" - NULL, poziom z klasy joba (SET_ATTRIBUTE_NULL sprawdzone na 26ai)
+    m.put("logging_level", logging == null ? "null" : "dbms_scheduler." + logging);
+    return m;
+  }
+
+  /** Wartosci argumentow z rodzajem akcji i jej nazwa - po zmianie akcji wszystkie sa ustawiane od nowa */
+  private List<String> argumentValues() {
+    List<String> result = new ArrayList<String>();
+    result.add(action() + ":" + actionText().toUpperCase());
+    args.stopEditing();
+    for (int r = 0; r < args.getRowCount(); r++) {
+      result.add(args.get(r, 3));
+    }
+    return result;
+  }
+
+  private String buildEdit() {
+    String name = nameLit();
+    int action = action();
+    List<String> now = argumentValues();
+    boolean sameAction = now.get(0).equals(loadedArguments.get(0));
+    int count = action == A_STORED_PROCEDURE ? argumentCount()
+      : action == A_EXECUTABLE || action == A_PROGRAM ? args.getRowCount() : 0;
+    // wartosci starej akcji (albo pozycji, ktorych juz nie ma) - kasowane przed zmiana atrybutow, przy starej
+    // liczbie argumentow; inaczej ENABLE odrzuca job (ORA-27465 ARGUMENT_POSITION, sprawdzone na 26ai)
+    StringBuilder changes = new StringBuilder();
+    for (int r = 0; r + 1 < loadedArguments.size(); r++) {
+      if ((!sameAction || r >= count) && loadedArguments.get(r + 1).length() > 0) {
+        changes.append("  dbms_scheduler.reset_job_argument_value(").append(name).append(", ").append(r + 1).append(");\n");
+      }
+    }
+    changes.append(changedAttributes(name, loadedAttributes, attributes()));
+    if (count > 0) {
+      for (int r = 0; r < count; r++) {
+        String value = now.get(r + 1);
+        String before = sameAction && r + 1 < loadedArguments.size() ? loadedArguments.get(r + 1) : null;
+        if (value.equals(before)) {
+          continue;
+        }
+        if (value.length() > 0 || action == A_EXECUTABLE) {
+          changes.append("  dbms_scheduler.set_job_argument_value(").append(name).append(", ").append(r + 1)
+            .append(", ").append(lit(value)).append(");\n");
+        } else if (before != null) {
+          changes.append("  dbms_scheduler.reset_job_argument_value(").append(name).append(", ").append(r + 1).append(");\n");
+        }
+      }
+    }
+    String run = checkEnabled.isSelected() && checkRunNow.isSelected() && when() != W_IMMEDIATE
+      ? "  dbms_scheduler.run_job(" + name + ", use_current_session => false);\n" : "";
+    return editBlock(name, changes.toString(), loadedEnabled, checkEnabled.isSelected(), run);
   }
 
   @Override
   String buildPlsql() {
-    String name = lit(qualified(textName.getText()));
+    // strona argumentow mogla zostac pominieta (skok z listy krokow) po zmianie akcji - argumenty nowej akcji
+    loadArguments();
+    if (isEdit()) {
+      return buildEdit();
+    }
+    String name = nameLit();
     List<String> params = new ArrayList<String>();
     add(params, "job_name", name);
     int action = action();
@@ -459,10 +667,6 @@ class SchedulerJobWizard extends SchedulerWizard {
   private static void add(List<String> params, String name, String value) {
     params.add(name);
     params.add(value);
-  }
-
-  private static String setAttribute(String name, String attribute, String value) {
-    return "  dbms_scheduler.set_attribute(" + name + ", " + lit(attribute) + ", " + value + ");\n";
   }
 
   @Override

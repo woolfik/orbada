@@ -19,6 +19,9 @@ import pl.mpak.usedb.core.Query;
 import pl.mpak.usedb.util.SQLUtil;
 import pl.mpak.util.ExceptionUtil;
 import pl.mpak.util.StringUtil;
+import pl.mpak.util.StringManager;
+import pl.mpak.util.StringManagerFactory;
+import pl.mpak.orbada.oracle.OrbadaOraclePlugin;
 
 /**
  *
@@ -27,8 +30,15 @@ import pl.mpak.util.StringUtil;
 public class SourceCreator {
 
   private ISettings settings;
+  private final static StringManager stringManager = StringManagerFactory.getStringManager(OrbadaOraclePlugin.class);
+
   private Database database;
   private SyntaxTextArea textArea;
+  /** ORBADA 1.3.2: z watku GUI z ustawionym textArea zrodlo pobierane w tle (zob. getSource) */
+  private boolean async = true;
+  /** Wlasciwosc textArea: numer ostatniego zlecenia pobrania - starsze wyniki sa pomijane */
+  private final static String loadTokenProperty = "orbada-source-creator-load";
+  private final static java.util.concurrent.atomic.AtomicLong loadSequence = new java.util.concurrent.atomic.AtomicLong();
   
   public SourceCreator(Database database) {
     this.database = database;
@@ -59,7 +69,112 @@ public class SourceCreator {
    * @param overload dla objectType = CALL i obiekcie typu pakiet lub typ, wersja funkcji/procedury
    * @return
    */
-  public String getSource(final String schemaName, final String objectType, final String objectName, String overload) {
+  /**
+   * ORBADA 1.3.2: false - pobieranie zawsze synchroniczne (wywolujacy od razu korzysta z tekstu edytora)
+   */
+  public SourceCreator setAsync(boolean async) {
+    this.async = async;
+    return this;
+  }
+
+  /**
+   * ORBADA 1.3.2: wywolane z watku GUI z ustawionym textArea pobiera zrodlo w tle (pobieranie duzego pakietu przez
+   * wolne lacze zawieszalo program) - w edytorze od razu komunikat "wczytywanie", a zrodlo po pobraniu; wynik
+   * zlecenia zastapionego nowszym (wybrano inny obiekt) jest pomijany. Zwraca wtedy null.
+   */
+  public String getSource(final String schemaName, final String objectType, final String objectName, final String overload) {
+    if (textArea == null || !async || !java.awt.EventQueue.isDispatchThread()) {
+      return getSourceNow(schemaName, objectType, objectName, overload);
+    }
+    final SyntaxTextArea area = textArea;
+    final Long token = Long.valueOf(loadSequence.incrementAndGet());
+    area.putClientProperty(loadTokenProperty, token);
+    setLoadingText(area, schemaName, objectType, objectName);
+    final PleaseWait wait = PleaseWait.createSqlWait();
+    Application.get().startPleaseWait(wait);
+    Thread thread = new Thread("orbada-oracle-source") {
+      @Override
+      public void run() {
+        String text = "";
+        try {
+          text = load(schemaName, objectType, objectName, overload);
+        } catch (Throwable ex) {
+          ExceptionUtil.processException(ex);
+        }
+        final String source = text;
+        java.awt.EventQueue.invokeLater(new Runnable() {
+          public void run() {
+            Application.get().stopPleaseWait(wait);
+            if (token.equals(area.getClientProperty(loadTokenProperty))) {
+              setAreaText(area, schemaName, objectType, objectName, source);
+            }
+          }
+        });
+      }
+    };
+    thread.setDaemon(true);
+    thread.start();
+    return null;
+  }
+
+  private final static java.util.Map<Database, Object> loadLocks = new java.util.WeakHashMap<Database, Object>();
+
+  private static Object loadLock(Database database) {
+    synchronized (loadLocks) {
+      Object lock = loadLocks.get(database);
+      if (lock == null) {
+        lock = new Object();
+        loadLocks.put(database, lock);
+      }
+      return lock;
+    }
+  }
+
+  private static void setLoadingText(SyntaxTextArea area, String schemaName, String objectType, String objectName) {
+    String text = StringUtil.equals(objectName, "") ? "" : "-- " + stringManager.getString("SourceCreator-loading");
+    if (area instanceof OrbadaSyntaxTextArea) {
+      ((OrbadaSyntaxTextArea)area).setDatabaseObject(schemaName, objectType, objectName, text);
+    }
+    else if (area instanceof OrbadaJavaSyntaxTextArea) {
+      ((OrbadaJavaSyntaxTextArea)area).setDatabaseObject(schemaName, objectType, objectName, text);
+    }
+  }
+
+  private static void setAreaText(SyntaxTextArea area, String schemaName, String objectType, String objectName, String source) {
+    if (area instanceof OrbadaSyntaxTextArea) {
+      ((OrbadaSyntaxTextArea)area).setDatabaseObject(schemaName, objectType, objectName, source);
+    }
+    else if (area instanceof OrbadaJavaSyntaxTextArea) {
+      ((OrbadaJavaSyntaxTextArea)area).setDatabaseObject(schemaName, objectType, objectName, source);
+    }
+    area.getEditorArea().setCaretPosition(0);
+  }
+
+  /**
+   * Pobranie zrodla (bez edytora). DBMS_METADATA.SET_TRANSFORM_PARAM i GET_DDL dzialaja na stanie sesji - pobierania
+   * jednej bazy (w tle i synchroniczne) po kolei; osobna blokada, bo na obiekcie Database synchronizuje sie tez kod GUI.
+   */
+  private String load(String schemaName, String objectType, String objectName, String overload) {
+    synchronized (loadLock(database)) {
+      return loadNow(schemaName, objectType, objectName, overload);
+    }
+  }
+
+  private String loadNow(String schemaName, String objectType, String objectName, String overload) {
+    if (StringUtil.equals(objectName, "")) {
+      return "";
+    }
+    if ("CALL".equalsIgnoreCase(objectType)) {
+      return getCall(schemaName, objectName, overload);
+    }
+    if (StringUtil.equalAnyOfString(objectType, new String[] {"FUNCTION", "PROCEDURE", "PACKAGE", "PACKAGE SPEC", "PACKAGE BODY", "TYPE", "TYPE BODY", "TRIGGER", "JAVA SOURCE"}, true)) {
+      return getPlSql(schemaName, objectType, objectName);
+    }
+    setTransformSettings(null);
+    return getDDL(schemaName, objectType, objectName);
+  }
+
+  private String getSourceNow(final String schemaName, final String objectType, final String objectName, String overload) {
     final String source;
     final PleaseWait wait;
     if (textArea != null) {
@@ -70,21 +185,7 @@ public class SourceCreator {
       wait = null;
     }
     try {
-      if (!StringUtil.equals(objectName, "")) {
-        if ("CALL".equalsIgnoreCase(objectType)) {
-          source = getCall(schemaName, objectName, overload);
-        }
-        else if (StringUtil.equalAnyOfString(objectType, new String[] {"FUNCTION", "PROCEDURE", "PACKAGE", "PACKAGE SPEC", "PACKAGE BODY", "TYPE", "TYPE BODY", "TRIGGER", "JAVA SOURCE"}, true)) {
-          source = getPlSql(schemaName, objectType, objectName);
-        }
-        else {
-          setTransformSettings(null);
-          source = getDDL(schemaName, objectType, objectName);
-        }
-      }
-      else {
-        source = "";
-      }
+      source = load(schemaName, objectType, objectName, overload);
     }
     finally {
       if (wait != null) {

@@ -41,7 +41,7 @@ public class SourcePanel extends javax.swing.JPanel implements Closeable {
 
   private void init() {
     source.setDatabase(accesibilities.getDatabase());
-    sourceCreator = new SourceCreator(accesibilities.getDatabase(), source);
+    sourceCreator = new SourceCreator(accesibilities.getDatabase(), source).setAsync(false);
     lineMark = new LineMark(-1, Color.getColor("activeCaption", new Color(204, 204, 255)), pl.mpak.sky.gui.swing.ImageManager.getImage("/pl/mpak/res/icons/line_point.gif"));
   }
 

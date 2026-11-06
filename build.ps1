@@ -79,9 +79,45 @@ New-Item -ItemType Directory -Force "$work\all" | Out-Null
 
 $modules = Get-ChildItem -Directory $src | Where-Object { $skipModules -notcontains $_.Name }
 
+# Plik z Maven Central w _pobrane\ (pobierany raz), sprawdzany przypieta suma SHA-256. Central publikuje dla tych
+# artefaktow tylko SHA-1 - suma SHA-256 policzona z pliku zgodnego z SHA-1 z Central przy dodawaniu wpisu
+$pobrane = Join-Path $root "_pobrane"
+function Get-Pobrany($d) {
+  $lokalny = Join-Path $pobrane (Split-Path -Leaf $d.Url)
+  if (-not (Test-Path $lokalny)) {
+    Write-Host "== Pobieranie $($d.Url)"
+    New-Item -ItemType Directory -Force $pobrane | Out-Null
+    Invoke-WebRequest -UseBasicParsing -Uri $d.Url -OutFile "$lokalny.part"
+    Move-Item -Force "$lokalny.part" $lokalny
+  }
+  if ((Get-FileHash -Algorithm SHA256 $lokalny).Hash -ne $d.Sha256) {
+    Remove-Item -Force $lokalny
+    throw "Zla suma SHA-256 pliku $lokalny - usuniety, uruchom build ponownie"
+  }
+  $lokalny
+}
+
+# Zamienniki starych bibliotek z 1.2.6 (T7) - to samo API (te same pakiety), bez znanych podatnosci; stary JAR
+# znika z dystrybucji, a startup.jar usuwa go takze z instalacji nadpisanej nowa wersja (Main.fileToDelete)
+$zamienniki = @(
+  # log4j 1.2.15 (CVE-2019-17571, CVE-2022-23302/23305/23307) -> reload4j, kontynuacja log4j 1.2 przez autora log4j
+  @{ Url = "https://repo1.maven.org/maven2/ch/qos/reload4j/reload4j/1.2.27/reload4j-1.2.27.jar"
+     Sha256 = "1caff35eed8ae949034b8723543b34c96e1785041d1096ab8dfc3b43fd63503d"; Zastepuje = "lib\log4j-1.2.15.jar" }
+  # BeanShell 2.0b4 (CVE-2016-2510) -> 2.0b6 z poprawka
+  @{ Url = "https://repo1.maven.org/maven2/org/apache-extras/beanshell/bsh/2.0b6/bsh-2.0b6.jar"
+     Sha256 = "a17955976070c0573235ee662f2794a78082758b61accffce8d3f8aedcd91047"; Zastepuje = "lib\bsh-2.0b4.jar" }
+  # iText 2.1.3 (2008) -> OpenPDF 1.3, fork iText 2.1.7 z pakietem com.lowagie (eksport do PDF), Java 8
+  @{ Url = "https://repo1.maven.org/maven2/com/github/librepdf/openpdf/1.3.43/openpdf-1.3.43.jar"
+     Sha256 = "fbee3e47ee897e81d4459b26f34d9870155c1a63d8885460a6dab440ebde416f"; Zastepuje = "lib\iText-2.1.3.jar" }
+)
+foreach ($z in $zamienniki) { $z.Lokalny = Get-Pobrany $z }
+$zastapione = $zamienniki | ForEach-Object { (Join-Path $dist $_.Zastepuje) }
+
 # Classpath: biblioteki zewnetrzne i pl.mpak.* z oryginalnej dystrybucji - bez JAR-ow Orbady i bibliotek budowanych ze zrodel
-$libJars = Get-ChildItem -Recurse -Filter *.jar "$dist\lib", "$dist\jdbc", "$dist\tools" |
-  Where-Object { $_.Name -notlike "orbada-*.jar" -and ($modules.Name -notcontains $_.BaseName) } | ForEach-Object { $_.FullName }
+$libJars = @(Get-ChildItem -Recurse -Filter *.jar "$dist\lib", "$dist\jdbc", "$dist\tools" |
+  Where-Object { $_.Name -notlike "orbada-*.jar" -and ($modules.Name -notcontains $_.BaseName) -and
+                 ($zastapione -notcontains $_.FullName) } | ForEach-Object { $_.FullName }) +
+  @($zamienniki | ForEach-Object { $_.Lokalny })
 $libCp = $libJars -join ";"
 
 $javacOpts = @("--release", $Release, "-encoding", "Cp1250", "-nowarn", "-Xlint:-options", "-proc:none")
@@ -99,6 +135,10 @@ Invoke-Tool $javac ($javacOpts + @("-cp", $libCp, "-d", "$work\all", "@$work\all
 
 # Krok 2: kazdy modul osobno (z wynikiem kroku 1 na classpath), zeby w JAR-ze byly dokladnie jego klasy
 Copy-Item -Recurse "$dist\*" $out
+foreach ($z in $zamienniki) {
+  Remove-Item -Force -ErrorAction SilentlyContinue (Join-Path $out $z.Zastepuje)
+  Copy-Item $z.Lokalny (Join-Path (Split-Path (Join-Path $out $z.Zastepuje)) (Split-Path -Leaf $z.Url))
+}
 $moduleCp = "$work\all;$libCp"
 foreach ($m in $modules) {
   $name = $m.Name
@@ -142,30 +182,21 @@ foreach ($m in $modules) {
   Invoke-Tool $jar ($jarArgs + @("-C", $classes, "."))
 }
 
-# Nowe sterowniki JDBC (dist-1.2.6 ma tylko stare): pobierane raz z Maven Central do _pobrane\, sprawdzane SHA-1
+# Nowe sterowniki JDBC (dist-1.2.6 ma tylko stare): pobierane raz z Maven Central do _pobrane\, sprawdzane SHA-256 (Get-Pobrany)
 $jdbcDrivers = @(
   # Oracle 12c-26ai; ojdbc6/ojdbc14 z 1.2.6 nowe bazy odrzucaja (ORA-28040)
   @{ Url = "https://repo1.maven.org/maven2/com/oracle/database/jdbc/ojdbc11/23.26.3.0.0/ojdbc11-23.26.3.0.0.jar"
-     Sha1 = "6936aba69cb7142aac36a53ed920af563b0e1dd1"; Plik = "ojdbc11.jar" }
+     Sha256 = "764cc3f88454d1be117e155d01ed617467b984c9c68f13090dd6083799d2bb8c"; Plik = "ojdbc11.jar" }
   # Oracle Wallet (F2): bez oraclepki ojdbc11 po cichu pomija wallet (ORA-01017). Wystarczy, ze lezy obok
   # ojdbc11.jar - manifest ojdbc11 ma "Class-Path: oraclepki.jar", wiec wpis w DRIVERS.DRV_EXTRA_LIBRARY zbedny
   @{ Url = "https://repo1.maven.org/maven2/com/oracle/database/security/oraclepki/23.26.3.0.0/oraclepki-23.26.3.0.0.jar"
-     Sha1 = "20a9247b60b3575248ea223483ec3b2dc89ec2c4"; Plik = "oraclepki.jar" }
+     Sha256 = "3e180d09700e56f167052c160b3a16ce5a953455187cc60986a853109fff2356"; Plik = "oraclepki.jar" }
+  # PostgreSQL 8.2-18 (T6): postgresql-9.3-1101 z 1.2.6 nie zna logowania SCRAM-SHA-256 (domyslne od PG 14)
+  @{ Url = "https://repo1.maven.org/maven2/org/postgresql/postgresql/42.7.14/postgresql-42.7.14.jar"
+     Sha256 = "73914527305a40cce504b0d3d90b23caf565136912d607ae8ae7c5895512332c"; Plik = "postgresql.jar" }
 )
-$pobrane = Join-Path $root "_pobrane"
 foreach ($d in $jdbcDrivers) {
-  $lokalny = Join-Path $pobrane (Split-Path -Leaf $d.Url)
-  if (-not (Test-Path $lokalny)) {
-    Write-Host "== Pobieranie $($d.Url)"
-    New-Item -ItemType Directory -Force $pobrane | Out-Null
-    Invoke-WebRequest -UseBasicParsing -Uri $d.Url -OutFile "$lokalny.part"
-    Move-Item -Force "$lokalny.part" $lokalny
-  }
-  if ((Get-FileHash -Algorithm SHA1 $lokalny).Hash -ne $d.Sha1) {
-    Remove-Item -Force $lokalny
-    throw "Zla suma SHA-1 pliku $lokalny - usuniety, uruchom build ponownie"
-  }
-  Copy-Item $lokalny (Join-Path $out "jdbc\$($d.Plik)")
+  Copy-Item (Get-Pobrany $d) (Join-Path $out "jdbc\$($d.Plik)")
 }
 
 # Historia wersji i zmian (Pomoc > Ostatnie zmiany, gdy GitHub niedostepny): changes.json z repo zamiast pliku autora
@@ -175,13 +206,20 @@ Copy-Item -Force (Join-Path $root "changes.json") "$out\doc\changes.json"
 # Brak katalogu fonts nie jest bledem (Application.initTTFFonts), ale tworzymy go dla porzadku
 New-Item -ItemType Directory -Force "$out\fonts" | Out-Null
 
-# Java 9+: pl.mpak.sky siega do wewnetrznej klasy JDK (sun.swing.SwingUtilities2) - do czasu poprawki otwieramy ja flaga
-# (pl.mpak.usedb budowany juz ze zrodel bez sun.security.util.BitArray - ROADMAP T4)
+# Bez --add-exports: pl.mpak.usedb i pl.mpak.sky budowane ze zrodel nie siegaja juz do wewnetrznych klas JDK
+# (sun.security.util.BitArray, sun.swing.SwingUtilities2 - ROADMAP T4)
 $jvmOpts = @("-Xms64M", "-Xmx1024M",
-  "--add-exports", "java.desktop/sun.swing=ALL-UNNAMED",
   "-Djava.system.class.loader=pl.mpak.startup.StartupClassLoader")
 "start javaw $($jvmOpts -join ' ') -jar startup.jar %1 %2 %3 %4" |
   Set-Content -Encoding ascii "$out\orbada.bat"
+# Tryb diagnostyczny (zawieszenia, brak pamieci): te same limity pamieci co orbada.bat, dziennik w
+# %USERPROFILE%\.orbada\diag (pl.mpak.orbada.core.Diagnostics), zrzut sterty przy OutOfMemoryError
+@(
+  '@echo off',
+  'set ORBADA_DIAG=%USERPROFILE%\.orbada\diag',
+  'if not exist "%ORBADA_DIAG%" mkdir "%ORBADA_DIAG%"',
+  "start javaw $($jvmOpts -join ' ') -XX:+HeapDumpOnOutOfMemoryError ""-XX:HeapDumpPath=%ORBADA_DIAG%"" ""-Dorbada.diag=%ORBADA_DIAG%"" -jar startup.jar %1 %2 %3 %4"
+) | Set-Content -Encoding ascii "$out\orbada-diag.bat"
 Write-Host "== Gotowe: $out"
 
 if ($Run) {

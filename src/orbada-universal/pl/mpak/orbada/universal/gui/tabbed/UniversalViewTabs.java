@@ -448,6 +448,11 @@ public abstract class UniversalViewTabs extends javax.swing.JPanel implements IR
     return accesibilities.getDatabase();
   }
   
+  /** ORBADA 1.3.2: schemat wybrany w widoku (moze byc inny niz biezacy schemat polaczenia) - dla kreatorow */
+  public String getSelectedSchemaName() {
+    return currentSchemaName;
+  }
+
   public JToolBar getToolBar() {
     return toolBar;
   }

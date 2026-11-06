@@ -46,7 +46,7 @@ public class PackageComboBoxModel extends DefaultComboBoxModel {
     this.schemaName = schemaName == null ? database.getUserName().toUpperCase() : schemaName;
     removeAllElements();
     DbObjectIdentified list = info.getObjectInfo("/SCHEMAS/" +this.schemaName +"/PACKAGES");
-    list.saveRefresh();
+    pl.mpak.orbada.gui.util.DbWork.refresh(list); // ORBADA 1.3.2: zapytanie poza watkiem GUI
     if (list instanceof DbObjectContainer) {
       for (DbObjectIdentified i : ((DbObjectContainer)list).objectsArray(true)) {
         addElement(i);

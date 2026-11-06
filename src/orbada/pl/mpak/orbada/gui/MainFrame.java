@@ -205,6 +205,8 @@ public class MainFrame extends javax.swing.JFrame implements IProcessMessagable 
       public void run() {
         checkDonation();
         checkUpdates();
+        // aktualizacja pobrana wczesniej (instalacja "po zamknieciu" przerwana) - pytanie o instalacje
+        UpdateInfoDialog.offerPending();
         if (Application.get().getSettings().getValue(Consts.newConnectionAtStartup, true)) {
           if (!Application.get().isFirstRun() ||
               Application.get().getPluginManager().getPluginByUniqueID(Consts.orbadaWelcomePluginId) == null) {

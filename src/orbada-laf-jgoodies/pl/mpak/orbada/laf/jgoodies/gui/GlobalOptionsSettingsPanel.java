@@ -101,7 +101,11 @@ public class GlobalOptionsSettingsPanel extends javax.swing.JPanel implements IS
 
   @Override
   public void restoreSettings() {
-    checkPopupDropShadowEnabled.setSelected(StringUtil.toBoolean(props.getProperty(JGoodiesLookAndFeelStarter.set_PopupDropShadowEnabled, "true")));
+    // bez javax.swing.JApplet (JDK 26+) cien pod menu jest zawsze wylaczony - zapisane ustawienie zostaje bez zmian
+    boolean shadowSupported = JGoodiesLookAndFeelStarter.isPopupDropShadowSupported();
+    checkPopupDropShadowEnabled.setEnabled(shadowSupported);
+    checkPopupDropShadowEnabled.setSelected(shadowSupported &&
+      StringUtil.toBoolean(props.getProperty(JGoodiesLookAndFeelStarter.set_PopupDropShadowEnabled, "true")));
     checkTabIconsEnabled.setSelected(StringUtil.toBoolean(props.getProperty(JGoodiesLookAndFeelStarter.set_TabIconsEnabled, "true")));
     checkUseNarrowButtons.setSelected(StringUtil.toBoolean(props.getProperty(JGoodiesLookAndFeelStarter.set_UseNarrowButtons, "true")));
     checkUseSystemFonts.setSelected(StringUtil.toBoolean(props.getProperty(JGoodiesLookAndFeelStarter.set_UseSystemFonts, "true")));
@@ -122,7 +126,9 @@ public class GlobalOptionsSettingsPanel extends javax.swing.JPanel implements IS
 
   @Override
   public void applySettings() {
-    props.setProperty(JGoodiesLookAndFeelStarter.set_PopupDropShadowEnabled, checkPopupDropShadowEnabled.isSelected() ? "true" : "false");
+    if (JGoodiesLookAndFeelStarter.isPopupDropShadowSupported()) {
+      props.setProperty(JGoodiesLookAndFeelStarter.set_PopupDropShadowEnabled, checkPopupDropShadowEnabled.isSelected() ? "true" : "false");
+    }
     props.setProperty(JGoodiesLookAndFeelStarter.set_TabIconsEnabled, checkTabIconsEnabled.isSelected() ? "true" : "false");
     props.setProperty(JGoodiesLookAndFeelStarter.set_UseNarrowButtons, checkUseNarrowButtons.isSelected() ? "true" : "false");
     props.setProperty(JGoodiesLookAndFeelStarter.set_UseSystemFonts, checkUseSystemFonts.isSelected() ? "true" : "false");

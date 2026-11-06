@@ -61,7 +61,10 @@ public class SourceCreator {
           source = getRule(schemaName, objectName, onObjectName);
         }
         else if ("FUNCTION".equalsIgnoreCase(objectType) || "TRIGGER FUNCTION".equalsIgnoreCase(objectType)) {
-          source = getFunction(schemaName, objectName);
+          source = getFunction(schemaName, objectName, "FUNCTION");
+        }
+        else if ("PROCEDURE".equalsIgnoreCase(objectType)) {
+          source = getFunction(schemaName, objectName, "PROCEDURE");
         }
         else if ("VIEW".equalsIgnoreCase(objectType)) {
           source = getView(schemaName, objectName);
@@ -123,7 +126,7 @@ public class SourceCreator {
     return "";
   }
 
-  private String getFunction(final String schemaName, final String objectName) {
+  private String getFunction(final String schemaName, final String objectName, final String kind) {
     Query query = database.createQuery();
     try {
       String grants = "";
@@ -132,7 +135,8 @@ public class SourceCreator {
       query.paramByName("OBJECT_NAME").setString(objectName);
       query.open();
       while (!query.eof()) {
-        grants = grants +query.fieldByName("command").getString() +"\n/\n";
+        // ORBADA 1.3.2: GRANT/ALTER/COMMENT ON PROCEDURE dla procedur
+        grants = grants +query.fieldByName("command").getString().replace(" ON FUNCTION ", " ON " +kind +" ") +"\n/\n";
         query.next();
       }
       query.setSqlText(Sql.getFunctionSource());
@@ -141,11 +145,11 @@ public class SourceCreator {
       query.open();
       if (!query.eof()) {
         return
-          "--DROP FUNCTION " +query.fieldByName("function_prot").getString() +"\n--/\n" +
+          "--DROP " +kind +" " +query.fieldByName("function_prot").getString() +"\n--/\n" +
           query.fieldByName("source").getString() +"/\n" +
-          "ALTER FUNCTION " +query.fieldByName("function_prot").getString() +" OWNER TO " +query.fieldByName("owner_name").getString() +"\n/\n" +
+          "ALTER " +kind +" " +query.fieldByName("function_prot").getString() +" OWNER TO " +query.fieldByName("owner_name").getString() +"\n/\n" +
           grants +
-          "COMMENT ON FUNCTION " +query.fieldByName("function_prot").getString() +" IS " +query.fieldByName("description").getString() +"\n/"
+          "COMMENT ON " +kind +" " +query.fieldByName("function_prot").getString() +" IS " +query.fieldByName("description").getString() +"\n/"
           ;
       }
     }

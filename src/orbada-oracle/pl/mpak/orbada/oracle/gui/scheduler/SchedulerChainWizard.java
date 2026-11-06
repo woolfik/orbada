@@ -187,13 +187,13 @@ class SchedulerChainWizard extends SchedulerWizard {
   }
 
   @Override
-  String getObjectName() {
-    return ident(textName.getText());
+  String getTypedName() {
+    return textName.getText();
   }
 
   @Override
   String buildPlsql() {
-    String name = lit(qualified(textName.getText()));
+    String name = nameLit();
     StringBuilder sb = new StringBuilder("begin\n");
     // ostrzezenia jako komentarze w kodzie - chain bez reguly startowej lub END formalnie jest poprawny
     boolean start = false;

@@ -195,10 +195,10 @@ public class AbsOrbadaSyntaxTextArea extends SyntaxTextArea implements CloseAbil
    */
   public Command storeObject() throws Exception {
     if (fireDatabaseObjectListener(DatabaseObjectEvent.BEFORE_STORE_OBJECT)) {
-      Command command = getDatabase().createCommand();
+      final Command command = getDatabase().createCommand();
       try {
         command.setParamCheck(false);
-        command.execute(getText());
+        execute(command, getText());
         setChanged(false);
         fireDatabaseObjectListener(DatabaseObjectEvent.AFTER_STORE_OBJECT);
       }
@@ -214,8 +214,29 @@ public class AbsOrbadaSyntaxTextArea extends SyntaxTextArea implements CloseAbil
   public Command storeObject(String text) throws Exception {
     Command command = getDatabase().createCommand();
     command.setParamCheck(false);
-    command.execute(text);
+    execute(command, text);
     return command;
+  }
+
+  /**
+   * ORBADA 1.3.2: kompilacja/zapis obiektu poza watkiem GUI (DbWork) - po 0,4 s okno z przyciskiem Przerwij,
+   * zamiast zawieszenia programu na czas kompilacji (np. pakiet uzywany przez inna sesje czeka na blokade).
+   */
+  private void execute(final Command command, final String text) throws Exception {
+    pl.mpak.orbada.gui.util.DbWork.run(this, null, new pl.mpak.orbada.gui.util.DbWork.Work<Object>() {
+      public Object run() throws Exception {
+        command.execute(text);
+        return null;
+      }
+    }, new Runnable() {
+      public void run() {
+        try {
+          command.cancel();
+        } catch (Exception ex) {
+          pl.mpak.util.ExceptionUtil.processException(ex);
+        }
+      }
+    });
   }
 
   /**

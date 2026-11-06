@@ -237,11 +237,17 @@ public class ViewTableLoader {
       }
     }
 
-    /** Dociaganie kolejnych paczek; QueryTableModel sam dodaje wiersze po zdarzeniu FLUSHED */
+    /**
+     * Dociaganie kolejnych paczek; QueryTableModel sam dodaje wiersze po zdarzeniu FLUSHED.
+     * ORBADA 1.3.2: fetchMore() zamiast getRecord() - getRecord() trzymal blokade bufora przez cale pobieranie
+     * paczki z sieci, a watek GUI rysujacy tabele (getRecordCount/getRecord) czekal na nia (zawieszenia 20+ s).
+     */
     private void fetchAll() throws Exception {
       int checked = 0;
       while (!cancelled && current == this && query.isActive() && !query.isFlushed()) {
-        query.getRecord(query.getRecordCount());
+        if (!query.fetchMore()) {
+          break;
+        }
         checked = findKey(checked);
         progress(false);
       }

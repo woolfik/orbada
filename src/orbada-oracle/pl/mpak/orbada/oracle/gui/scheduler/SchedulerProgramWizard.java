@@ -3,7 +3,9 @@ package pl.mpak.orbada.oracle.gui.scheduler;
 import java.awt.BorderLayout;
 import java.awt.CardLayout;
 import java.awt.FlowLayout;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import javax.swing.ButtonGroup;
 import javax.swing.JCheckBox;
 import javax.swing.JComboBox;
@@ -12,6 +14,9 @@ import javax.swing.JRadioButton;
 import javax.swing.JTextField;
 import pl.mpak.orbada.gui.comps.OrbadaSyntaxTextArea;
 import pl.mpak.usedb.core.Database;
+import pl.mpak.usedb.core.Query;
+import pl.mpak.util.ExceptionUtil;
+import pl.mpak.util.variant.Variant;
 
 /**
  * ORBADA Fuerteventura (F5): kreator programu (CREATE_PROGRAM + DEFINE_PROGRAM_ARGUMENT) - blok PL/SQL,
@@ -173,22 +178,90 @@ class SchedulerProgramWizard extends SchedulerWizard {
   }
 
   @Override
-  String getObjectName() {
-    return ident(textName.getText());
+  String getTypedName() {
+    return textName.getText();
   }
 
+  // --- edycja
+
+  /** DEFAULT_VALUE w ALL_SCHEDULER_PROGRAM_ARGS dla argumentu bez wartosci domyslnej */
+  private final static String NO_VALUE = "<NO VALUE>";
+  private Map<String, String> loadedAttributes;
+  /** Argumenty wczytane: wiersze "nazwa|typ|domyslna" */
+  private List<String> loadedArguments;
+  private boolean loadedEnabled;
+
   @Override
-  String buildPlsql() {
-    String name = lit(qualified(textName.getText()));
-    List<String[]> rows = type() == PLSQL_BLOCK ? java.util.Collections.<String[]>emptyList() : args.getRows();
-    StringBuilder sb = new StringBuilder("begin\n");
-    sb.append(call("create_program",
-      "program_name", name,
-      "program_type", lit(types[type()]),
-      "program_action", lit(action()),
-      "number_of_arguments", String.valueOf(rows.size()),
-      "enabled", "false",
-      "comments", lit(fieldText(textComments))));
+  void load(String name) {
+    Map<String, String> r = loadRow("select program_type, program_action, enabled, comments\n"
+      + "  from all_scheduler_programs where owner = :OWNER and program_name = :NAME", name);
+    int type = java.util.Arrays.asList(types).indexOf(r.get("PROGRAM_TYPE"));
+    if (type < 0) {
+      throw new IllegalArgumentException(text("SchedWiz-err-edit-type", nvl(r.get("PROGRAM_TYPE"))));
+    }
+    textName.setText(name);
+    textName.setEditable(false);
+    textComments.setText(nvl(r.get("COMMENTS")));
+    checkEnabled.setSelected("TRUE".equals(r.get("ENABLED")));
+    radioType[type].setSelected(true);
+    actionCards.show(actionPanel, types[type]);
+    String action = nvl(r.get("PROGRAM_ACTION"));
+    if (type == PLSQL_BLOCK) {
+      textBlock.setText(action);
+    } else if (type == STORED_PROCEDURE) {
+      comboProcedure.setSelectedItem(action);
+      // argumenty programu ze slownika, nie z deklaracji procedury
+      argsLoadedFrom = action;
+    } else {
+      textExecutable.setText(action);
+    }
+    Query q = database.createQuery();
+    try {
+      q.setSqlText("select argument_name, argument_type, default_value from all_scheduler_program_args\n"
+        + " where owner = :OWNER and program_name = :NAME order by argument_position");
+      q.paramByName("OWNER").setString(schema);
+      q.paramByName("NAME").setString(name);
+      q.open();
+      while (!q.eof()) {
+        Variant def = q.fieldByName("DEFAULT_VALUE").getValue();
+        String d = def.isNullValue() ? "NULL" : NO_VALUE.equals(def.getString()) ? "" : def.getString();
+        args.addRow(new Object[] {nvl(q.fieldByName("ARGUMENT_NAME").getValue().getString()),
+          nvl(q.fieldByName("ARGUMENT_TYPE").getValue().getString()), d});
+        q.next();
+      }
+    } catch (Exception ex) {
+      ExceptionUtil.processException(ex);
+    } finally {
+      q.close();
+    }
+    loadedAttributes = attributes();
+    loadedArguments = argumentRows();
+    loadedEnabled = checkEnabled.isSelected();
+  }
+
+  private List<String[]> rows() {
+    return type() == PLSQL_BLOCK ? java.util.Collections.<String[]>emptyList() : args.getRows();
+  }
+
+  private Map<String, String> attributes() {
+    Map<String, String> m = new java.util.LinkedHashMap<String, String>();
+    m.put("program_type", lit(types[type()]));
+    m.put("program_action", lit(action()));
+    m.put("number_of_arguments", String.valueOf(rows().size()));
+    m.put("comments", lit(fieldText(textComments)));
+    return m;
+  }
+
+  private List<String> argumentRows() {
+    List<String> result = new ArrayList<String>();
+    for (String[] a : rows()) {
+      result.add(ident(a[0]) + "|" + a[1].toUpperCase() + "|" + a[2]);
+    }
+    return result;
+  }
+
+  private String defineArguments(String name, List<String[]> rows) {
+    StringBuilder sb = new StringBuilder();
     for (int i = 0; i < rows.size(); i++) {
       String[] a = rows.get(i);
       sb.append(call("define_program_argument",
@@ -199,6 +272,42 @@ class SchedulerProgramWizard extends SchedulerWizard {
         // bez default_value - inna wersja procedury (argument obowiazkowy); NULL - wartosc domyslna NULL
         "default_value", a[2].length() == 0 ? null : a[2].equalsIgnoreCase("NULL") ? "null" : lit(a[2])));
     }
+    return sb.toString();
+  }
+
+  /** Zmienione argumenty: stare usuwane (od konca), atrybuty, nowe definiowane od poczatku */
+  private String buildEdit() {
+    String name = nameLit();
+    StringBuilder changes = new StringBuilder();
+    boolean argsChanged = !argumentRows().equals(loadedArguments);
+    if (argsChanged) {
+      for (int i = loadedArguments.size(); i >= 1; i--) {
+        changes.append("  dbms_scheduler.drop_program_argument(").append(name).append(", ").append(i).append(");\n");
+      }
+    }
+    changes.append(changedAttributes(name, loadedAttributes, attributes()));
+    if (argsChanged) {
+      changes.append(defineArguments(name, rows()));
+    }
+    return editBlock(name, changes.toString(), loadedEnabled, checkEnabled.isSelected(), "");
+  }
+
+  @Override
+  String buildPlsql() {
+    if (isEdit()) {
+      return buildEdit();
+    }
+    String name = nameLit();
+    List<String[]> rows = rows();
+    StringBuilder sb = new StringBuilder("begin\n");
+    sb.append(call("create_program",
+      "program_name", name,
+      "program_type", lit(types[type()]),
+      "program_action", lit(action()),
+      "number_of_arguments", String.valueOf(rows.size()),
+      "enabled", "false",
+      "comments", lit(fieldText(textComments))));
+    sb.append(defineArguments(name, rows));
     if (checkEnabled.isSelected()) {
       sb.append("  dbms_scheduler.enable(").append(name).append(");\n");
     }

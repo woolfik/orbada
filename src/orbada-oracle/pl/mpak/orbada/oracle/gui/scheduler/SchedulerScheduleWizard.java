@@ -1,5 +1,6 @@
 package pl.mpak.orbada.oracle.gui.scheduler;
 
+import java.util.Map;
 import javax.swing.JTextField;
 import pl.mpak.usedb.core.Database;
 
@@ -44,15 +45,47 @@ class SchedulerScheduleWizard extends SchedulerWizard {
   }
 
   @Override
-  String getObjectName() {
-    return ident(textName.getText());
+  String getTypedName() {
+    return textName.getText();
+  }
+
+  // --- edycja
+
+  private Map<String, String> loadedAttributes;
+
+  @Override
+  void load(String name) {
+    Map<String, String> r = loadRow("select schedule_type, " + SchedulerWizard.dateColumn("start_date") + ", repeat_interval, "
+      + SchedulerWizard.dateColumn("end_date") + ", comments\n"
+      + "  from all_scheduler_schedules where owner = :OWNER and schedule_name = :NAME", name);
+    if (!"CALENDAR".equals(r.get("SCHEDULE_TYPE")) && !"PLSQL".equals(r.get("SCHEDULE_TYPE"))) {
+      throw new IllegalArgumentException(text("SchedWiz-err-edit-schedule", nvl(r.get("SCHEDULE_TYPE"))));
+    }
+    textName.setText(name);
+    textName.setEditable(false);
+    textComments.setText(nvl(r.get("COMMENTS")));
+    calendar.setValues(r.get("REPEAT_INTERVAL"), r.get("START_DATE"), r.get("END_DATE"));
+    loadedAttributes = attributes();
+  }
+
+  private Map<String, String> attributes() {
+    Map<String, String> m = new java.util.LinkedHashMap<String, String>();
+    m.put("start_date", timestampLit(calendar.getStart()));
+    m.put("repeat_interval", lit(calendar.getExpression()));
+    m.put("end_date", calendar.getEnd().length() == 0 ? "null" : timestampLit(calendar.getEnd()));
+    m.put("comments", lit(fieldText(textComments)));
+    return m;
   }
 
   @Override
   String buildPlsql() {
+    if (isEdit()) {
+      // harmonogram nie ma wlaczania - zmiany od razu
+      return editBlock(nameLit(), changedAttributes(nameLit(), loadedAttributes, attributes()), false, false, "");
+    }
     return "begin\n"
       + call("create_schedule",
-        "schedule_name", lit(qualified(textName.getText())),
+        "schedule_name", nameLit(),
         "start_date", timestampLit(calendar.getStart()),
         "repeat_interval", lit(calendar.getExpression()),
         "end_date", calendar.getEnd().length() == 0 ? "null" : timestampLit(calendar.getEnd()),

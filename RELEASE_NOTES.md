@@ -1,5 +1,27 @@
 # ORBADA — informacje o wydaniach
 
+## ORBADA 1.3.2 „Fuerteventura” (2026-11-06)
+
+### Nowości
+
+- **Edycja obiektów Oracle Scheduler** — przycisk „Edytuj...” w zakładkach Joby, Programy i Harmonogramy otwiera kreator wypełniony istniejącym obiektem; można zmienić m.in. akcję (blok PL/SQL, procedura, program, chain), harmonogram (kalendarz z podglądem, nazwany harmonogram, okno), argumenty i opcje. Przed zapisaniem widać kod PL/SQL, który zmienia tylko zmienione atrybuty.
+- **Kolumny IDENTITY i wirtualne w kreatorze tabel** — nowa kolumna „Generowana” w definicji kolumn (tabela zwykła i tymczasowa): `GENERATED ALWAYS / BY DEFAULT [ON NULL] AS IDENTITY` z opcjami `START WITH`/`INCREMENT BY` oraz `GENERATED ALWAYS AS (wyrażenie) VIRTUAL`; wśród wartości domyślnych `DEFAULT ON NULL`, `SYSTIMESTAMP`, `SYS_GUID()`. Opcje z Oracle 12c pokazywane tylko dla baz 12c i nowszych.
+- **Automatyczna aktualizacja** — w oknie „Dostępne są aktualizacje” przycisk „Pobierz” proponuje „Zainstaluj automatycznie”: Orbada pobiera nową wersję z GitHuba, sprawdza sumę kontrolną SHA-256 i po zamknięciu podmienia pliki (poprzednia wersja zostaje w katalogu `update\backup`, profil użytkownika bez zmian), a potem uruchamia się ponownie. Działa od tej wersji na kolejne; gdy katalog programu nie jest zapisywalny, jak dotąd otwiera stronę pobierania.
+- **Procedury PostgreSQL** — nowy widok „Procedury” (PostgreSQL 11+) z zakładkami źródła, argumentów, uprawnień, szczegółów i zależności; lista funkcji nie pokazuje już procedur. Widok dodaje się z menu widoków, jeśli zapisana perspektywa go nie ma.
+- **Kreatory PostgreSQL** — w menu „Akcje” list tabel, kolumn, ograniczeń, indeksów, widoków, funkcji, procedur, wyzwalaczy, sekwencji, typów i schematów oraz w nowym menu „PostgreSQL → Kreatory”: tworzenie tabel (z kolumnami `GENERATED … AS IDENTITY` i `GENERATED ALWAYS AS (…) STORED/VIRTUAL`), widoków (też zmaterializowanych, z `REFRESH`), indeksów, ograniczeń, funkcji, procedur, wyzwalaczy, sekwencji, typów, domen i schematów, a także zmiana kolumn, nazw i schematu, kopia tabeli, `TRUNCATE`, `LOCK`, wywołanie funkcji/procedury z wynikiem, `GRANT`/`REVOKE` i usuwanie obiektów. Przed wykonaniem widać kod SQL. Bez autocommit kreator działa w `SAVEPOINT`, a zmiany zatwierdza się jak polecenia z edytora. W menu „PostgreSQL” także parametry sesji (`search_path`, poziom izolacji, `statement_timeout`, `lock_timeout`, `work_mem`, ostrzeżenia PL/pgSQL i inne).
+
+### Zmiany
+
+- **Nowy sterownik PostgreSQL** — „PostgreSQL (pgjdbc 42)” (pgjdbc 42.7.14) łączy się z PostgreSQL 14–18 i logowaniem SCRAM-SHA-256; stary sterownik 9.3 kończył się błędem „Uwierzytelnienie typu 10 nie jest obsługiwane”.
+- **Wtyczka PostgreSQL działa z PostgreSQL 12–18** — szczegóły tabel i widoków, zależności obiektów, ograniczenia i rozmiar tabel obcych nie kończą się już błędem kolumny lub funkcji katalogu usuniętej w nowszych wersjach.
+- **Zaktualizowane biblioteki** — log4j 1.2.15 zastąpiony przez reload4j 1.2.27, BeanShell 2.0b4 przez 2.0b6, iText 2.1.3 przez OpenPDF 1.3.43 (eksport do PDF); usuwa znane podatności starych wersji. Przy rozpakowaniu nowej wersji na starą stare pliki są usuwane przy starcie.
+- **Bez wewnętrznego API JDK** — `orbada.bat` nie potrzebuje już opcji `--add-exports` i uruchamia się także na Javie 8.
+
+### Poprawki błędów
+
+- Na JDK 26 i nowszych rozwijanie menu w wyglądzie JGoodies (a także Substance) kończyło się błędem `NoClassDefFoundError: javax/swing/JApplet` — cień pod menu jest wtedy wyłączany.
+- **Zawieszanie się okna przy pracy z Oracle** — program przestawał odpowiadać na czas operacji w bazie, przy kilku połączeniach i wolnym łączu nawet na minuty: podczas wczytywania listy obiektów (np. po podłączeniu kolejnej bazy), wczytywania źródła pakietu, procedury czy widoku, wypełniania list w kreatorach i zapisu (kompilacji) obiektu. Teraz te operacje działają w tle: lista i źródło wczytują się bez blokowania okna, a gdy kompilacja albo wypełnianie listy trwa dłużej niż chwilę, pojawia się okno „Wykonywanie…” z przyciskiem „Przerwij” (np. kompilacja pakietu używanego przez inną sesję).
+
 ## ORBADA 1.3.1 „Fuerteventura” (2026-11-01)
 
 Pierwsze wydanie po 1.2.6 beta (2019) — numer 1.3.1 oddziela je od ostatniego wydania autora. Autor Orbady, Andrzej Kałuża, nie planuje wznawiać projektu — rozwój

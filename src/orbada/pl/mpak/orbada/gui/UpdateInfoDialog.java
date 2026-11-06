@@ -12,7 +12,13 @@
 package pl.mpak.orbada.gui;
 
 import java.awt.Desktop;
+import java.awt.EventQueue;
 import java.awt.Font;
+import java.awt.event.WindowEvent;
+import javax.swing.JOptionPane;
+import pl.mpak.orbada.core.AutoUpdate;
+import pl.mpak.sky.gui.mr.ModalResult;
+import pl.mpak.sky.gui.swing.MessageBox;
 import java.net.URL;
 import javax.swing.AbstractButton;
 import javax.swing.JComponent;
@@ -73,6 +79,83 @@ public class UpdateInfoDialog extends javax.swing.JDialog {
     getRootPane().getActionMap().put("cmCancel", cmClose);
     SwingUtil.setButtonSizesTheSame(new AbstractButton[] {buttonDownload, buttonCancel});
     SwingUtil.centerWithinScreen(this);
+  }
+
+  /** Pobranie i rozpakowanie w tle (postep pod lista zmian), potem pytanie o instalacje */
+  private void install(final JSONObject lastVersion) {
+    cmDownload.setEnabled(false);
+    labelDownload.setText(stringManager.getString("update-downloading"));
+    Thread t = new Thread(new Runnable() {
+      private long shownMb = -1;
+      @Override
+      public void run() {
+        try {
+          AutoUpdate.prepare(lastVersion, new AutoUpdate.Progress() {
+            @Override
+            public void progress(final long done, final long total) {
+              final long mb = done / 1048576;
+              if (mb != shownMb) {
+                shownMb = mb;
+                EventQueue.invokeLater(new Runnable() {
+                  @Override
+                  public void run() {
+                    labelDownload.setText(String.format(stringManager.getString("update-progress"), mb,
+                      total > 0 ? String.valueOf(total / 1048576) : "?"));
+                  }
+                });
+              }
+            }
+          });
+          EventQueue.invokeLater(new Runnable() {
+            @Override
+            public void run() {
+              labelDownload.setText(" ");
+              dispose();
+              askInstall(lastVersion.optString("version"));
+            }
+          });
+        } catch (final Exception ex) {
+          EventQueue.invokeLater(new Runnable() {
+            @Override
+            public void run() {
+              labelDownload.setText(" ");
+              cmDownload.setEnabled(true);
+              MessageBox.show(UpdateInfoDialog.this, getTitle(), ex.getMessage(), ModalResult.OK, MessageBox.ERROR);
+            }
+          });
+        }
+      }
+    }, "orbada-update-download");
+    t.setDaemon(true);
+    t.start();
+  }
+
+  /**
+   * Aktualizacja pobrana: TAK - Orbada zamyka sie, pliki sa podmieniane i Orbada startuje ponownie;
+   * NIE - podmiana po zamknieciu Orbady (bez ponownego uruchomienia).
+   */
+  static void askInstall(String version) {
+    int r = MessageBox.show(SwingUtil.getRootFrame(), stringManager.getString("cmDownload-text"),
+      String.format(stringManager.getString("update-ready-q"), version), ModalResult.YESNO, MessageBox.QUESTION);
+    boolean now = r == ModalResult.YES;
+    try {
+      AutoUpdate.launchUpdater(now);
+    } catch (Exception ex) {
+      MessageBox.show(SwingUtil.getRootFrame(), stringManager.getString("cmDownload-text"), ex.getMessage(), ModalResult.OK, MessageBox.ERROR);
+      return;
+    }
+    if (now) {
+      java.awt.Frame frame = Application.get().getMainFrame();
+      frame.dispatchEvent(new WindowEvent(frame, WindowEvent.WINDOW_CLOSING));
+    }
+  }
+
+  /** Przy starcie: aktualizacja pobrana wczesniej, a nie zainstalowana - pytanie o instalacje */
+  public static void offerPending() {
+    String version = AutoUpdate.pendingVersion();
+    if (version != null) {
+      askInstall(version);
+    }
   }
 
   private void produceHtml() {
@@ -233,6 +316,23 @@ public class UpdateInfoDialog extends javax.swing.JDialog {
       try {
         if (updateInfo.has("lastVersion")) {
           JSONObject lastVersion = updateInfo.getJSONObject("lastVersion");
+          if (AutoUpdate.isAvailable(lastVersion)) {
+            // ORBADA 1.3.2 (F7): instalacja z GitHub Release albo, jak dawniej, strona pobierania
+            Object[] options = {
+              stringManager.getString("update-install-auto"),
+              stringManager.getString("update-open-page"),
+              stringManager.getString("update-cancel")};
+            int choice = JOptionPane.showOptionDialog(this,
+              String.format(stringManager.getString("update-install-q"), lastVersion.optString("version")),
+              getTitle(), JOptionPane.DEFAULT_OPTION, JOptionPane.QUESTION_MESSAGE, null, options, options[0]);
+            if (choice == 0) {
+              install(lastVersion);
+              return;
+            }
+            if (choice != 1) {
+              return;
+            }
+          }
           if (lastVersion.has("downloadPage")) {
             try {
               Desktop.getDesktop().browse(new URL((String)lastVersion.get("downloadPage")).toURI());

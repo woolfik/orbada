@@ -36,7 +36,12 @@ public class Main {
     "pl.mpak.doscharset-1.0.0.jar",
     "pl.mpak.waitdlg-1.0.0.jar",
     "pl.mpak-1.0.0.jar",
-    "swing-layout-1.0.3.jar"
+    "swing-layout-1.0.3.jar",
+    // ORBADA 1.3.2: zastapione przez reload4j, bsh-2.0b6 i OpenPDF (ROADMAP T7) - przy rozpakowaniu nowej wersji
+    // na stara zostalyby obok nowych i te same klasy bylyby na classpath dwa razy
+    "log4j-1.2.15.jar",
+    "bsh-2.0b4.jar",
+    "iText-2.1.3.jar"
   };
   
   private static void searchLibPath(StartupClassLoader classLoader, String path) {

@@ -38,6 +38,7 @@ class SchedulerCalendarPanel extends JPanel {
   private final static int HOURLY = 1;
   private final static int DAILY = 2;
   private final static int MONTHLY = 4;
+  private final static int YEARLY = 5;
   private final static int CUSTOM = 6;
   private final static String[] days = {"MON", "TUE", "WED", "THU", "FRI", "SAT", "SUN"};
   private final static int PREVIEW_COUNT = 10;
@@ -169,7 +170,7 @@ class SchedulerCalendarPanel extends JPanel {
       for (JCheckBox c : checkMonths) {
         c.setEnabled(!custom);
       }
-      textMonthDays.setEnabled(f == MONTHLY || f == MONTHLY + 1);
+      textMonthDays.setEnabled(f == MONTHLY || f == YEARLY);
       textTimes.setEnabled(!custom && f >= HOURLY);
       labelTimes.setText(SchedulerWizard.text(f == HOURLY ? "SchedWiz-cal-minutes" : "SchedWiz-cal-times"));
       textTimes.setToolTipText(SchedulerWizard.text(f == HOURLY ? "SchedWiz-cal-minutes-tip" : "SchedWiz-cal-times-tip"));
@@ -345,6 +346,149 @@ class SchedulerCalendarPanel extends JPanel {
 
   String getExpression() {
     return textExpression.getText().trim();
+  }
+
+  /**
+   * Edycja: kalendarz ze slownika. Wyrazenie rozkladane na pola, gdy pola zbuduja dokladnie to samo
+   * (np. zapisane przez kreator); inne (BYSETPOS, BYDAY=-1FRI, wyrazenie PL/SQL itp.) - jako wlasne wyrazenie.
+   */
+  void setValues(String expression, String start, String end) {
+    expression = expression == null ? "" : expression.trim();
+    updating = true;
+    try {
+      textStart.setText(start == null ? "" : start);
+      textEnd.setText(end == null ? "" : end);
+      boolean parsed = parseExpression(expression);
+      if (parsed) {
+        String built;
+        try {
+          built = buildExpression();
+        } catch (IllegalArgumentException ex) {
+          built = null;
+        }
+        parsed = built != null && normalize(built).equals(normalize(expression));
+      }
+      if (!parsed) {
+        comboFreq.setSelectedIndex(CUSTOM);
+        textExpression.setText(expression);
+      }
+    } finally {
+      updating = false;
+    }
+    changed();
+  }
+
+  private static String normalize(String expression) {
+    return expression.replaceAll("\\s+", "").replaceAll(";+$", "").toUpperCase(Locale.ROOT);
+  }
+
+  /** Pola formularza z wyrazenia; false - wyrazenie ma elementy, ktorych formularz nie zna */
+  private boolean parseExpression(String expression) {
+    int freq = -1;
+    int interval = 1;
+    String byMonth = null;
+    String byMonthDay = null;
+    String byDay = null;
+    String byHour = null;
+    String byMinute = null;
+    for (String part : expression.split(";")) {
+      part = part.trim();
+      if (part.length() == 0) {
+        continue;
+      }
+      int eq = part.indexOf('=');
+      if (eq < 0) {
+        return false;
+      }
+      String key = part.substring(0, eq).trim().toUpperCase(Locale.ROOT);
+      String value = part.substring(eq + 1).trim().toUpperCase(Locale.ROOT);
+      if ("FREQ".equals(key)) {
+        for (int i = 0; i < CUSTOM; i++) {
+          if (freqs[i].equals(value)) {
+            freq = i;
+            break;
+          }
+        }
+      } else if ("INTERVAL".equals(key)) {
+        try {
+          interval = Integer.parseInt(value);
+        } catch (NumberFormatException ex) {
+          return false;
+        }
+      } else if ("BYMONTH".equals(key)) {
+        byMonth = value;
+      } else if ("BYMONTHDAY".equals(key)) {
+        byMonthDay = value;
+      } else if ("BYDAY".equals(key)) {
+        byDay = value;
+      } else if ("BYHOUR".equals(key)) {
+        byHour = value;
+      } else if ("BYMINUTE".equals(key)) {
+        byMinute = value;
+      } else if (!("BYSECOND".equals(key) && "0".equals(value))) {
+        return false;
+      }
+    }
+    if (freq < 0 || interval < 1 || interval > 999) {
+      return false;
+    }
+    comboFreq.setSelectedIndex(freq);
+    // changed() jest wstrzymane - dostepnosc pola, od ktorej zalezy buildExpression(), ustawiana tutaj
+    textMonthDays.setEnabled(freq == MONTHLY || freq == YEARLY);
+    spinInterval.setValue(interval);
+    for (int i = 0; i < 12; i++) {
+      checkMonths[i].setSelected(false);
+    }
+    for (int i = 0; i < 7; i++) {
+      checkDays[i].setSelected(false);
+    }
+    try {
+      if (byMonth != null) {
+        for (String m : byMonth.split(",")) {
+          checkMonths[Integer.parseInt(m.trim()) - 1].setSelected(true);
+        }
+      }
+    } catch (RuntimeException ex) {
+      return false;
+    }
+    if (byDay != null) {
+      for (String d : byDay.split(",")) {
+        int i = java.util.Arrays.asList(days).indexOf(d.trim());
+        if (i < 0) {
+          return false;
+        }
+        checkDays[i].setSelected(true);
+      }
+    }
+    textMonthDays.setText(byMonthDay == null ? "" : byMonthDay.replace(",", ", "));
+    if (freq == HOURLY) {
+      if (byHour != null) {
+        return false;
+      }
+      textTimes.setText(byMinute == null ? "" : byMinute.replace(",", ", "));
+    } else if (freq > HOURLY) {
+      if (byHour == null && byMinute == null) {
+        textTimes.setText("");
+      } else if (byHour == null || byMinute == null) {
+        return false;
+      } else {
+        // iloczyn godzin i minut - tak jak buduje go times()
+        StringBuilder sb = new StringBuilder();
+        for (String h : byHour.split(",")) {
+          for (String m : byMinute.split(",")) {
+            try {
+              sb.append(sb.length() > 0 ? ", " : "").append(String.format("%d:%02d", Integer.parseInt(h.trim()), Integer.parseInt(m.trim())));
+            } catch (NumberFormatException ex) {
+              return false;
+            }
+          }
+        }
+        textTimes.setText(sb.toString());
+      }
+    } else if (byHour != null || byMinute != null) {
+      return false;
+    }
+    return true;
   }
 
   /** Poczatek "RRRR-MM-DD GG:MM" albo pusty (teraz) */

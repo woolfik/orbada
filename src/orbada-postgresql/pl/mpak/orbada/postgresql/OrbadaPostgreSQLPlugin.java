@@ -10,6 +10,7 @@ import pl.mpak.orbada.postgresql.services.PostgreSQLAggregateListView;
 import pl.mpak.orbada.postgresql.services.PostgreSQLDatabaseProvider;
 import pl.mpak.orbada.postgresql.services.PostgreSQLDbInfoProvider;
 import pl.mpak.orbada.postgresql.services.PostgreSQLFunctionListView;
+import pl.mpak.orbada.postgresql.services.PostgreSQLProcedureListView;
 import pl.mpak.orbada.postgresql.services.PostgreSQLPerspectiveProvider;
 import pl.mpak.orbada.postgresql.services.PostgreSQLRoleListView;
 import pl.mpak.orbada.postgresql.services.PostgreSQLSchemaListView;
@@ -28,6 +29,7 @@ import pl.mpak.orbada.postgresql.services.PostgreSQLViewListView;
 import pl.mpak.orbada.postgresql.services.actions.ExplainPlanService;
 import pl.mpak.orbada.postgresql.services.actions.FreezeAction;
 import pl.mpak.orbada.postgresql.services.actions.FunctionActionsService;
+import pl.mpak.orbada.postgresql.services.actions.PostgreSQLWizardActionsService;
 import pl.mpak.orbada.postgresql.services.actions.PostgreSQLCancelQueryAction;
 import pl.mpak.orbada.postgresql.services.actions.PostgreSQLSQLWarningsService;
 import pl.mpak.orbada.postgresql.services.actions.PostgreSQLTerminateSessionAction;
@@ -204,6 +206,7 @@ public class OrbadaPostgreSQLPlugin extends OrbadaPlugin {
     classList.add(PostgreSQLSearchObjectView.class);
     classList.add(PostgreSQLTableSizeView.class);
     classList.add(PostgreSQLFunctionListView.class);
+    classList.add(PostgreSQLProcedureListView.class);
     classList.add(PostgreSQLTriggerFunctionListView.class);
     classList.add(PostgreSQLSequenceListView.class);
     classList.add(PostgreSQLTablespaceListView.class);
@@ -227,6 +230,7 @@ public class OrbadaPostgreSQLPlugin extends OrbadaPlugin {
     classList.add(TableColumnsActionsService.class);
     classList.add(PostgreSQLSettingsProvider.class);
     classList.add(FreezeAction.class);
+    classList.add(PostgreSQLWizardActionsService.class);
     initTemplates();
   }
   

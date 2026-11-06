@@ -112,6 +112,8 @@ public class Query extends ParametrizedCommand implements Closeable, Cloneable {
   private File cacheFile = null;
   private transient RandomAccessFile cacheRAF = null;
   private ArrayList<Long> recordFilePos = null;
+  /** ORBADA 1.3.2: czytanie z ResultSet do bufora - jeden watek naraz (readCacheRecords z GUI i z fetchMore) */
+  private final Object fetchLock = new Object();
   private ArrayList<CacheRecord> cacheRecords = null;
   private int currentRecordIndex = -1;
   private int currentCacheRecord = -1;
@@ -1332,24 +1334,57 @@ public class Query extends ParametrizedCommand implements Closeable, Cloneable {
    * @throws UseDBException
    */
   private void readCacheRecords() throws UseDBException, VariantException, SQLException, IOException {
-    int cnt = 0;
+    // ORBADA 1.3.2: bufor (recordFilePos) blokowany tylko na zapis jednego rekordu - czytanie z sieci
+    // (internalNext, fillRecord) bez blokady, zeby watek GUI mogl w tym czasie rysowac pobrane wiersze
+    synchronized (fetchLock) {
+      ArrayList<Long> positions = recordFilePos;
+      RandomAccessFile raf = cacheRAF;
+      if (positions == null || raf == null) {
+        return;
+      }
+      int cnt = 0;
 
-    WriteRecord rec = new WriteRecord(fields.getFieldCount());
-    synchronized (recordFilePos) {
+      WriteRecord rec = new WriteRecord(fields.getFieldCount());
       while (!isAfterLast() && cnt < getDatabase().getFetchRecordCount()) {
         fillRecord(rec);
-        recordFilePos.add(rec.write(cacheRAF));
+        synchronized (positions) {
+          if (recordFilePos != positions) {
+            // zapytanie zamkniete (albo otwarte ponownie) w trakcie pobierania
+            return;
+          }
+          positions.add(rec.write(raf));
+        }
         internalNext();
         cnt++;
       }
-    }
 
-    rec.clear();
-    rec = null;
+      rec.clear();
+      rec = null;
 
-    if (isAfterLast()) {
-      flushed = true;
+      if (isAfterLast()) {
+        flushed = true;
+      }
     }
+  }
+
+  /**
+   * ORBADA 1.3.2: dociagniecie kolejnej paczki rekordow z watku w tle (ViewTableLoader) bez blokady bufora
+   * ostatnio uzywanych rekordow (cacheRecords) - watek GUI moze w tym czasie odczytywac i rysowac juz pobrane
+   * wiersze (getRecordCount, getRecord). Tylko dla list bez edycji rekordow (applyUpdate/delete synchronizuja
+   * sie na cacheRecords).
+   * @return true, gdy pobrano kolejne rekordy
+   */
+  public boolean fetchMore() throws UseDBException, VariantException, SQLException, IOException {
+    if (!cacheData || recordFilePos == null || isAfterLast()) {
+      return false;
+    }
+    int before = getRecordCount();
+    readCacheRecords();
+    boolean more = getRecordCount() > before;
+    if (more) {
+      fireQueryListener(Event.FLUSHED);
+    }
+    return more;
   }
 
   private int getOldestCacheRecord() {
