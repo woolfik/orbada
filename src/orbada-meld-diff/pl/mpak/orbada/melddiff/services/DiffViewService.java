@@ -31,11 +31,24 @@ public class DiffViewService extends ViewProvider {
     this.leftFileName = leftFileName;
     this.rightFileName = rightFileName;
   }
-  
+
+  /** ORBADA 1.3.2: porownanie zawartosci dwoch edytorow - z przyciskami powrotu tresci do edytorow/bazy */
+  public DiffViewService(String leftFileName, String rightFileName, MeldSyntaxService.Side left, MeldSyntaxService.Side right) {
+    this(leftFileName, rightFileName);
+    this.left = left;
+    this.right = right;
+  }
+
+  private MeldSyntaxService.Side left;
+  private MeldSyntaxService.Side right;
+
   public Component createView(IViewAccesibilities accesibilities) {
     viewPanel = new DiffViewPanel(accesibilities);
     if (leftFileName != null && rightFileName != null) {
       viewPanel.getMeldPanel().openComparison(leftFileName, rightFileName);
+      if (left != null && right != null) {
+        viewPanel.setSides(left, right);
+      }
     }
     return viewPanel;
   }
@@ -49,7 +62,7 @@ public class DiffViewService extends ViewProvider {
   }
   
   public Icon getIcon() {
-    return pl.mpak.sky.gui.swing.ImageManager.getImage("/pl/mpak/res/icons/diff.gif");
+    return OrbadaMeldDiffPlugin.icon("compare");
   }
 
   public boolean isForDatabase(Database database) {

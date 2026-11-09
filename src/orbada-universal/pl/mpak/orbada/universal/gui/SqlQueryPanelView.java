@@ -752,6 +752,18 @@ public class SqlQueryPanelView extends javax.swing.JPanel implements Closeable, 
     updateCurrentEditorFileNameLabel();
   }
   
+  /**
+   * ORBADA 1.3.2: nowa zawartosc edytora z podanym tekstem - np. strona porownania (wtyczka JMeld) do wykonania
+   * albo kompilacji Ctrl+Enter na tej bazie. Poprzednia zawartosc zostaje na liscie zawartosci (zapisana).
+   */
+  public void openText(String text) {
+    newEditorContent();
+    textSqlEditor.setText(text);
+    textSqlEditor.setChanged(true);
+    textSqlEditor.getEditorArea().setCaretPosition(0);
+    textSqlEditor.getEditorArea().requestFocusInWindow();
+  }
+
   private void deleteEditorContent() {
     if (currentEditorContent != null) {
       if (textSqlEditor.isChanged() &&

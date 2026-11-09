@@ -29,7 +29,7 @@ public class RightContentAction extends Action {
   public RightContentAction(SyntaxTextArea syntaxTextArea) {
     super();
     setText(stringManager.getString("RightContentAction-text"));
-    setSmallIcon(pl.mpak.sky.gui.swing.ImageManager.getImage("/pl/mpak/res/icons/diff.gif"));
+    setSmallIcon(OrbadaMeldDiffPlugin.icon("right"));
     setActionCommandKey("RightContentAction");
     addActionListener(createActionListener());
     this.syntaxTextArea = syntaxTextArea;
@@ -40,10 +40,10 @@ public class RightContentAction extends Action {
       @Override
       public void actionPerformed(ActionEvent e) {
         if ((e.getModifiers() & InputEvent.SHIFT_MASK) == InputEvent.SHIFT_MASK) {
-          MeldSyntaxService.setRightContent(syntaxTextArea.getCurrentText(), (PerspectivePanel)getParent(e, PerspectivePanel.class));
+          MeldSyntaxService.setRightContent(syntaxTextArea.getCurrentText(), syntaxTextArea, (PerspectivePanel)getParent(e, PerspectivePanel.class));
         }
         else {
-          MeldSyntaxService.setRightContent(syntaxTextArea.getText(), (PerspectivePanel)getParent(e, PerspectivePanel.class));
+          MeldSyntaxService.setRightContent(syntaxTextArea.getText(), syntaxTextArea, (PerspectivePanel)getParent(e, PerspectivePanel.class));
         }
       }
     };

@@ -194,6 +194,11 @@ $jdbcDrivers = @(
   # PostgreSQL 8.2-18 (T6): postgresql-9.3-1101 z 1.2.6 nie zna logowania SCRAM-SHA-256 (domyslne od PG 14)
   @{ Url = "https://repo1.maven.org/maven2/org/postgresql/postgresql/42.7.14/postgresql-42.7.14.jar"
      Sha256 = "73914527305a40cce504b0d3d90b23caf565136912d607ae8ae7c5895512332c"; Plik = "postgresql.jar" }
+  # MySQL 5.7-9 (1.3.2): mysql-connector-java-5.1.7 z 1.2.6 nie zna logowania caching_sha2_password (domyslne od MySQL 8)
+  # i zamiast bledu serwera sprzed logowania pokazuje "Communications link failure"; klasy Java 8, protobuf
+  # potrzebny tylko do X DevAPI
+  @{ Url = "https://repo1.maven.org/maven2/com/mysql/mysql-connector-j/26.10.0/mysql-connector-j-26.10.0.jar"
+     Sha256 = "cef70caf532833c9ab8f41f74773ce22c08bf503fad215c9c2ee1e9db87e759e"; Plik = "mysql-connector-j.jar" }
 )
 foreach ($d in $jdbcDrivers) {
   Copy-Item (Get-Pobrany $d) (Join-Path $out "jdbc\$($d.Plik)")

@@ -1,22 +1,50 @@
 {
   "specVersion": "1.0.0.0",
   "application": "Orbada",
-  "generated": "2026-11-06 17:01:35",
+  "generated": "2026-11-09 20:38:23",
   "projectPage": "https://github.com/woolfik/orbada",
   "lastVersion": {
-    "id": "20261106170135-1302000000000000-00000000",
-    "created": "2026-11-06 17:01:35",
-    "updated": "2026-11-06 17:01:35",
-    "released": "2026-11-06",
-    "version": "1.3.2.501 Fuerteventura, Hiszpania",
+    "id": "20261109203823-1303000000000000-00000000",
+    "created": "2026-11-09 20:38:23",
+    "updated": "2026-11-09 20:38:23",
+    "released": "2026-11-09",
+    "version": "1.3.3.502 Fuerteventura, Hiszpania",
     "description": "",
     "downloadPage": "https://github.com/woolfik/orbada/releases/latest",
-    "downloadUrl": "https://github.com/woolfik/orbada/releases/download/v1.3.2/orbada-1.3.2.zip",
-    "sha256": "715971285b5b89a93bd3e3e8acbe20331e8e388c4a6542c732265c1f4701bf4e",
-    "size": 55140698
+    "downloadUrl": "https://github.com/woolfik/orbada/releases/download/v1.3.3/orbada-1.3.3.zip",
+    "sha256": "27325e7c30b0f8efd11e8154665d030bd7a423ac345764ae7d43184e2433a035",
+    "size": 57610269
   },
   "versions": [
     {
+      "id": "20261109203823-1303000000000000-00000000",
+      "created": "2026-11-09 20:38:23",
+      "updated": "2026-11-09 20:38:23",
+      "released": "2026-11-09",
+      "version": "1.3.3.502 Fuerteventura, Hiszpania",
+      "description": "",
+      "downloadPage": "https://github.com/woolfik/orbada/releases/latest",
+      "downloadUrl": "https://github.com/woolfik/orbada/releases/download/v1.3.3/orbada-1.3.3.zip",
+      "sha256": "27325e7c30b0f8efd11e8154665d030bd7a423ac345764ae7d43184e2433a035",
+      "size": 57610269,
+      "details": [
+        {
+          "id": "20261109203823-1303000000000000-00000001",
+          "created": "2026-11-09 20:38:23",
+          "updated": "2026-11-09 20:38:23",
+          "type": "Added",
+          "title": "Por\u00f3wnanie zawarto\u015bci: powr\u00f3t do bazy"
+        },
+        {
+          "id": "20261109203823-1303000000000000-00000002",
+          "created": "2026-11-09 20:38:23",
+          "updated": "2026-11-09 20:38:23",
+          "type": "Modified",
+          "title": "Nowy sterownik MySQL"
+        }
+      ]
+    },
+{
       "id": "20261106170135-1302000000000000-00000000",
       "created": "2026-11-06 17:01:35",
       "updated": "2026-11-06 17:01:35",

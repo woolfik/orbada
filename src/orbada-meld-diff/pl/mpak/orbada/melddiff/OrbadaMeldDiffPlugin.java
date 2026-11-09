@@ -22,6 +22,11 @@ public class OrbadaMeldDiffPlugin extends OrbadaPlugin {
   private StringManager stringManager = StringManagerFactory.getStringManager(OrbadaMeldDiffPlugin.class);
 
   public final static String pluginGroupName = "Orbada Tools";
+
+  /** ORBADA 1.3.2: ikony wtyczki (res/*.png, 16x16) */
+  public static javax.swing.Icon icon(String name) {
+    return pl.mpak.sky.gui.swing.ImageManager.getImage("/pl/mpak/orbada/melddiff/res/" + name + ".png");
+  }
   
   /**
    * Funkcja powinna zwracaæ nazwê wewnêtrzn¹ wtyczki

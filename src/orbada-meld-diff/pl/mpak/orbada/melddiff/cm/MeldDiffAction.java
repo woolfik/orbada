@@ -27,7 +27,7 @@ public class MeldDiffAction extends Action {
   public MeldDiffAction(IPerspectiveAccesibilities accesibilities) {
     super();
     setText(stringManager.getString("MeldDiffAction-text"));
-    setSmallIcon(pl.mpak.sky.gui.swing.ImageManager.getImage("/pl/mpak/res/icons/diff.gif"));
+    setSmallIcon(OrbadaMeldDiffPlugin.icon("compare"));
     setActionCommandKey("MeldDiffAction");
     addActionListener(createActionListener());
     this.accesibilities = accesibilities;

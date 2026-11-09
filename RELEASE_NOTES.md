@@ -1,5 +1,15 @@
 # ORBADA — informacje o wydaniach
 
+## ORBADA 1.3.3 „Fuerteventura” (2026-11-09)
+
+### Nowości
+
+- **Porównanie zawartości: powrót do bazy** — w widoku „Różnice zbiorów” otwartym z menu edytora (prawy klawisz → Porównanie zawartości) są przyciski przeniesienia lewej albo prawej strony — także po zmianach zrobionych w porównaniu — do nowego edytora SQL bazy, z której pochodzi (Ctrl+Enter kompiluje np. pakiet), albo z powrotem do edytora, z którego ją wzięto. Nowe ikony w menu porównania.
+
+### Zmiany
+
+- **Nowy sterownik MySQL** — „MySQL (Connector/J 26)” łączy się z MySQL 8 i nowszym (logowanie `caching_sha2_password`) i pokazuje prawdziwy błąd serwera zamiast „Communications link failure” (np. „Can't get hostname for your address”); stary sterownik 5.1.7 zostaje na liście.
+
 ## ORBADA 1.3.2 „Fuerteventura” (2026-11-06)
 
 ### Nowości
