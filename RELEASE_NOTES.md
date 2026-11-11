@@ -1,5 +1,11 @@
 # ORBADA — informacje o wydaniach
 
+## ORBADA 1.3.5 „Fuerteventura” (2026-11-11)
+
+### Zmiany
+
+- **Bez przycisku „Wesprzyj projekt” na pasku** — po aktualizacji nie pojawia się już przycisk w prawym górnym rogu okna; link do wsparcia zostaje w menu Pomoc.
+
 ## ORBADA 1.3.4 „Fuerteventura” (2026-11-11)
 
 ### Nowości

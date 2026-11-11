@@ -146,6 +146,7 @@ public class MainFrame extends javax.swing.JFrame implements IProcessMessagable 
   }
   
   private void init() {
+    // ORBADA 1.3.4: przycisk "Wesprzyj projekt" na pasku ukryty na stale - wystarczy pozycja w menu Pomoc
     buttonDonation.setVisible(false);
     // pozycja "Wesprzyj projekt" tylko gdy jest adres wsparcia (ROADMAP F6)
     menuPageDonations.setVisible(Consts.orbadaSponsorsUrl != null);
@@ -181,29 +182,10 @@ public class MainFrame extends javax.swing.JFrame implements IProcessMessagable 
     menuUserGuide.setVisible(false);
   }
   
-  private void checkDonation() {
-    if (Consts.orbadaSponsorsUrl != null &&
-        Application.get().getLastVersion() != null && Application.get().getLastVersion().getBuild() < Consts.orbadaVersion.getBuild()) {
-      buttonDonation.setVisible(true);
-      TimerManager.getGlobal().add(new Timer(60000, true) {
-        @Override
-        public void run() {
-          java.awt.EventQueue.invokeLater(new Runnable() {
-            @Override
-            public void run() {
-              buttonDonation.setVisible(false);
-            }
-          });
-        }
-      });
-    }
-  }
-
   public void afterInit() {
     java.awt.EventQueue.invokeLater(new Runnable() {
       @Override
       public void run() {
-        checkDonation();
         checkUpdates();
         // aktualizacja pobrana wczesniej (instalacja "po zamknieciu" przerwana) - pytanie o instalacje
         UpdateInfoDialog.offerPending();

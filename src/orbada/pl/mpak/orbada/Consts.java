@@ -22,7 +22,7 @@ public class Consts {
   private final static StringManager stringManager = StringManagerFactory.getStringManager(Consts.class);
 
   // 1.3.1 - pierwsze wydanie po przejeciu projektu (1.2.6 beta to ostatnie wydanie autora)
-  public final static VersionID orbadaVersion = new VersionID(1, 3, 4, 503);
+  public final static VersionID orbadaVersion = new VersionID(1, 3, 5, 504);
   public final static String orbadaReleaseDate = "2026-11-11";
   public final static String orbadaSubname = "Fuerteventura, Hiszpania"; // ORBADA Fuerteventura (F3)
   
