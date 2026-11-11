@@ -22,6 +22,7 @@ import javax.swing.JScrollPane;
 import javax.swing.JTextArea;
 import javax.swing.JWindow;
 import javax.swing.ListCellRenderer;
+import javax.swing.SwingUtilities;
 import javax.swing.border.BevelBorder;
 import javax.swing.event.EventListenerList;
 import javax.swing.event.ListSelectionEvent;
@@ -193,6 +194,11 @@ public class AutoCompleteText implements KeyListener, FocusListener, MouseListen
   private void select(AutoCompleteItem selected) {
     if (selected == null) {
       selected = (AutoCompleteItem)lst.getSelectedValue();
+    }
+    // ORBADA 1.3.4: "wczytywanie..." (lub pusta lista) - nic do wstawienia
+    if (selected == null || selected instanceof AutoCompleteLoadingItem) {
+      setActive(false);
+      return;
     }
     if (parent instanceof JTextArea) {
       String txt = parent.getText();
@@ -389,7 +395,8 @@ public class AutoCompleteText implements KeyListener, FocusListener, MouseListen
       setActive(false);
       return;
     }
-    if (!bracketMode && SkySetting.getBoolean(SkySetting.AutoCompleteText_AutomaticSingle, true) && items.length == 1 && !window.isVisible()) {
+    if (!bracketMode && SkySetting.getBoolean(SkySetting.AutoCompleteText_AutomaticSingle, true) && items.length == 1 && !window.isVisible() &&
+        !(items[0] instanceof AutoCompleteLoadingItem)) {
       select(items[0]);
     }
     else {
@@ -449,6 +456,25 @@ public class AutoCompleteText implements KeyListener, FocusListener, MouseListen
         }
         hintWindow.setVisible(true);
       }
+    }
+  }
+
+  /**
+   * ORBADA 1.3.4: ponowne pobranie listy dla biezacej pozycji kursora (np. gdy dostawca skonczyl ladowac dane
+   * w tle). Dziala tylko przy otwartej liscie; spoza watku GUI przekazywane do niego.
+   */
+  public void refresh() {
+    if (!SwingUtilities.isEventDispatchThread()) {
+      SwingUtilities.invokeLater(new Runnable() {
+        public void run() {
+          refresh();
+        }
+      });
+      return;
+    }
+    if (active && parent != null) {
+      caretPosition = -1;
+      populateList();
     }
   }
 

@@ -22,8 +22,8 @@ public class Consts {
   private final static StringManager stringManager = StringManagerFactory.getStringManager(Consts.class);
 
   // 1.3.1 - pierwsze wydanie po przejeciu projektu (1.2.6 beta to ostatnie wydanie autora)
-  public final static VersionID orbadaVersion = new VersionID(1, 3, 3, 502);
-  public final static String orbadaReleaseDate = "2026-11-09";
+  public final static VersionID orbadaVersion = new VersionID(1, 3, 4, 503);
+  public final static String orbadaReleaseDate = "2026-11-11";
   public final static String orbadaSubname = "Fuerteventura, Hiszpania"; // ORBADA Fuerteventura (F3)
   
   public final static String orbadaUserId = "20080808194053-00000D1B617B0B5A-EBA871AB";
@@ -37,8 +37,8 @@ public class Consts {
   public final static String orbadaNewIssueUrl = orbadaProjectUrl +"/issues/new";
   /** Informacje o wersjach i zmianach (format changes.json autora) - plik changes.json w repozytorium */
   public final static String orbadaUpdateInfoUrl = "https://raw.githubusercontent.com/woolfik/orbada/main/changes.json";
-  /** Strona wsparcia projektu (GitHub Sponsors - ROADMAP F6); null - pozycja "Wesprzyj projekt" i przycisk ukryte */
-  public final static String orbadaSponsorsUrl = null;
+  /** Strona wsparcia projektu (buycoffee.to - ROADMAP F6); null - pozycja "Wesprzyj projekt" i przycisk ukryte */
+  public final static String orbadaSponsorsUrl = "https://buycoffee.to/woolfik";
   public final static String orbadaCopyrights = "All interested";
   public final static String orbadaFirstRun = stringManager.getString("splash-orbada-first-run-3d");
 

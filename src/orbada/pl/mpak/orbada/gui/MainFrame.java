@@ -147,7 +147,7 @@ public class MainFrame extends javax.swing.JFrame implements IProcessMessagable 
   
   private void init() {
     buttonDonation.setVisible(false);
-    // wsparcie projektu dopiero po uruchomieniu GitHub Sponsors (ROADMAP F6)
+    // pozycja "Wesprzyj projekt" tylko gdy jest adres wsparcia (ROADMAP F6)
     menuPageDonations.setVisible(Consts.orbadaSponsorsUrl != null);
 
     Application.get().registerRequestMessager(this);

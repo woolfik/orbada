@@ -1,5 +1,6 @@
 package pl.mpak.orbada.oracle.gui.wizards.type;
 
+import pl.mpak.orbada.oracle.gui.wizards.IfExistsOption;
 import pl.mpak.orbada.oracle.OrbadaOraclePlugin;
 import pl.mpak.orbada.oracle.gui.util.TypeComboBoxModel;
 import pl.mpak.orbada.universal.gui.wizards.SqlCodeWizardPanel;
@@ -19,6 +20,25 @@ public class DropTypeWizard extends SqlCodeWizardPanel {
   private final StringManager stringManager = StringManagerFactory.getStringManager(OrbadaOraclePlugin.class);
 
   private Database database;
+  // ORBADA 1.3.4: IF NOT EXISTS / IF EXISTS (Oracle 23ai+) - pole pod formularzem, klauzula w poleceniu
+  private IfExistsOption ifExists;
+
+  private IfExistsOption ifExists() {
+    if (ifExists == null) {
+      ifExists = new IfExistsOption(database, false);
+    }
+    return ifExists;
+  }
+
+  @Override
+  public javax.swing.JComponent getExtraOptions() {
+    return ifExists().getComponent();
+  }
+
+  public String getSqlCode() {
+    return ifExists().apply(getSqlCodeBase());
+  }
+
   private String schemaName;
   private String typeName;
   
@@ -47,7 +67,7 @@ public class DropTypeWizard extends SqlCodeWizardPanel {
     return stringManager.getString("DropTypeWizard-tab-title");
   }
   
-  public String getSqlCode() {
+  private String getSqlCodeBase() {
     return "DROP TYPE " +SQLUtil.createSqlName(schemaName, comboTables.getSelectedItem().toString());
   }
   

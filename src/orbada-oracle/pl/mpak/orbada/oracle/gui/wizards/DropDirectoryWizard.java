@@ -19,6 +19,25 @@ public class DropDirectoryWizard extends SqlCodeWizardPanel {
   private final StringManager stringManager = StringManagerFactory.getStringManager(OrbadaOraclePlugin.class);
 
   private Database database;
+  // ORBADA 1.3.4: IF NOT EXISTS / IF EXISTS (Oracle 23ai+) - pole pod formularzem, klauzula w poleceniu
+  private IfExistsOption ifExists;
+
+  private IfExistsOption ifExists() {
+    if (ifExists == null) {
+      ifExists = new IfExistsOption(database, false);
+    }
+    return ifExists;
+  }
+
+  @Override
+  public javax.swing.JComponent getExtraOptions() {
+    return ifExists().getComponent();
+  }
+
+  public String getSqlCode() {
+    return ifExists().apply(getSqlCodeBase());
+  }
+
   private String directoryName;
   
   public DropDirectoryWizard(Database database, String directoryName) {
@@ -45,7 +64,7 @@ public class DropDirectoryWizard extends SqlCodeWizardPanel {
     return stringManager.getString("DropDirectoryWizard-tab-title");
   }
   
-  public String getSqlCode() {
+  private String getSqlCodeBase() {
     return "DROP DIRECTORY " +SQLUtil.createSqlName(comboDirectory.getSelectedItem().toString());
   }
   

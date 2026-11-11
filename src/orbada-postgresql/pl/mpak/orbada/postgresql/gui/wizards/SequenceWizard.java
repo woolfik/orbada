@@ -27,6 +27,8 @@ public class SequenceWizard extends PgWizard {
   private final JCheckBox checkRestart;
   private final TextField textRestart;
   private final TextField textOwnedBy;
+  // ORBADA 1.3.4: IF NOT EXISTS - bez bledu, gdy obiekt juz istnieje
+  private final JCheckBox checkIfNotExists;
   /** Wartosci przed zmiana: typ, start, przyrost, min, max, cache, cykl, owned by */
   private final String[] old = {"", "", "", "", "", "", "N", ""};
 
@@ -62,6 +64,7 @@ public class SequenceWizard extends PgWizard {
       textRestart = null;
     }
     textOwnedBy = text("owned-by", old[7]);
+    checkIfNotExists = sequence == null && atLeast(9, 5) ? check("if-not-exists") : null;
     note("owned-by-hint");
   }
 
@@ -125,7 +128,8 @@ public class SequenceWizard extends PgWizard {
     if (sequence == null) {
       require(value(textName).length() > 0, "wizard-name-required");
       result("object_name", value(textName));
-      sql.add("CREATE SEQUENCE " + name(schemaName, value(textName)) + join(options));
+      sql.add("CREATE SEQUENCE " + (checkIfNotExists != null && checkIfNotExists.isSelected() ? "IF NOT EXISTS " : "") +
+        name(schemaName, value(textName)) + join(options));
     } else if (!options.isEmpty()) {
       sql.add("ALTER SEQUENCE " + sequence + join(options));
     }

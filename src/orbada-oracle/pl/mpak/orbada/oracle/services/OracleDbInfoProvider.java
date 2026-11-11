@@ -7,6 +7,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.StringTokenizer;
+import java.util.concurrent.ConcurrentHashMap;
 import pl.mpak.orbada.gui.comps.table.QueryTablePanel;
 import pl.mpak.orbada.oracle.OrbadaOraclePlugin;
 import pl.mpak.orbada.oracle.Sql;
@@ -42,7 +43,8 @@ public class OracleDbInfoProvider extends DatabaseInfoProvider {
   
   private HashMap<String, DbDatabaseInfo> databaseInfoList;
   private HashMap<String, HashMap<String, String[]>> databaseStringList;
-  private HashMap<String, HashMap<String, ArrayList<AutoCompleteItem>>> databaseSyntaxList;
+  /** ORBADA 1.3.4: ConcurrentHashMap - listy laduja watki w tle dla roznych baz; mapy wewnetrzne pod blokada na Database */
+  private ConcurrentHashMap<String, HashMap<String, ArrayList<AutoCompleteItem>>> databaseSyntaxList;
   
   private long lastSchemaListTime;
   
@@ -50,7 +52,7 @@ public class OracleDbInfoProvider extends DatabaseInfoProvider {
     instance = this;
     databaseInfoList = new HashMap<String, DbDatabaseInfo>();
     databaseStringList = new HashMap<String, HashMap<String, String[]>>();
-    databaseSyntaxList = new HashMap<String, HashMap<String, ArrayList<AutoCompleteItem>>>();
+    databaseSyntaxList = new ConcurrentHashMap<String, HashMap<String, ArrayList<AutoCompleteItem>>>();
   }
   
   public boolean isForDatabase(Database database) {
@@ -81,6 +83,35 @@ public class OracleDbInfoProvider extends DatabaseInfoProvider {
       result = result +words[i];
     }
     return "".equals(result) ? getCurrentSchema(database) : result;
+  }
+
+  /** ORBADA 1.3.4: klucz listy podpowiedzi (obiekt przed kropka albo biezacy schemat) */
+  public String getAutoCompleteKey(Database database, String[] words) {
+    return getUniqueName(database) + "/" + getWordId(database, words);
+  }
+
+  /** ORBADA 1.3.4: lista podpowiedzi z pamieci albo null, gdy trzeba ja dopiero pobrac (bez zapytan) */
+  public ArrayList<AutoCompleteItem> getCachedAutoCompleteList(Database database, String[] words) {
+    synchronized (database) {
+      HashMap<String, ArrayList<AutoCompleteItem>> map = databaseSyntaxList.get(getUniqueName(database));
+      return map == null ? null : map.get(getWordId(database, words));
+    }
+  }
+
+  /**
+   * ORBADA 1.3.4: pobranie listy podpowiedzi do pamieci - z watku w tle. Zapytania do slownika bez blokady na
+   * obiekcie Database (synchronizuja sie na nim takze metody wolane z watku GUI), tylko zapis do pamieci pod nia.
+   */
+  public void loadAutoCompleteList(Database database, String[] words) {
+    ArrayList<AutoCompleteItem> items = prepareInfo(database, words);
+    synchronized (database) {
+      HashMap<String, ArrayList<AutoCompleteItem>> map = databaseSyntaxList.get(getUniqueName(database));
+      if (map == null) {
+        map = new HashMap<String, ArrayList<AutoCompleteItem>>();
+        databaseSyntaxList.put(getUniqueName(database), map);
+      }
+      map.put(getWordId(database, words), items);
+    }
   }
 
   public ArrayList<AutoCompleteItem> getAutoCompleteList(Database database, String[] words, boolean bracketMode, int commaCount) {

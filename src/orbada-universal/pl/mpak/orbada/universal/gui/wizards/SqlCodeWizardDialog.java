@@ -88,18 +88,66 @@ public class SqlCodeWizardDialog extends javax.swing.JDialog {
     getRootPane().getActionMap().put("cmCancel", cmCancel);
     getRootPane().setDefaultButton(buttonOk);
     setTitle(wizardPanel.getDialogTitle());
-    tabbedWizard.insertTab(wizardPanel.getTabTitle(), null, wizardPanel, null, 0);
+    // ORBADA 1.3.4: opcje dodatkowe kreatora (getExtraOptions) pod jego formularzem
+    javax.swing.JComponent extra = wizardPanel.getExtraOptions();
+    if (extra != null) {
+      javax.swing.JPanel page = new javax.swing.JPanel(new java.awt.BorderLayout());
+      page.add(wizardPanel, java.awt.BorderLayout.CENTER);
+      javax.swing.JPanel options = new javax.swing.JPanel(new java.awt.FlowLayout(java.awt.FlowLayout.LEFT, 8, 4));
+      options.add(extra);
+      page.add(options, java.awt.BorderLayout.SOUTH);
+      tabbedWizard.insertTab(wizardPanel.getTabTitle(), null, page, null, 0);
+    }
+    else {
+      tabbedWizard.insertTab(wizardPanel.getTabTitle(), null, wizardPanel, null, 0);
+    }
     tabbedWizard.setSelectedIndex(0);
     checkBackground.setVisible(execute);
     textSqlCode.setEditable(editableSql);
     int height = SwingUtil.setButtonSizesTheSame(new AbstractButton[] {buttonOk, buttonCancel});
     buttonScriptInfo.setPreferredSize(new Dimension(height, height));
+    layoutBottomAligned();
     pack();
     try {
-      setBounds(0, 0, settings.getValue("width", new Variant(getWidth())).getInteger(), settings.getValue("height", new Variant(getHeight())).getInteger());
+      Dimension min = getMinimumSize();
+      setBounds(0, 0,
+        Math.max(min.width, settings.getValue("width", new Variant(getWidth())).getInteger()),
+        Math.max(min.height, settings.getValue("height", new Variant(getHeight())).getInteger()));
     } catch (Exception ex) {
+      pl.mpak.util.ExceptionUtil.processException(ex);
     }
     SwingUtil.centerWithinScreen(this);
+  }
+
+  /**
+   * ORBADA 1.3.4: pasek z opcjami i przyciskami przyklejony do dolu okna (jak Align = alBottom w Delphi) - przy
+   * kazdym rozmiarze okna widoczny, zmniejsza sie tylko obszar zakladek. Uklad z NetBeans (GroupLayout) przy
+   * oknie mniejszym niz zawartosc ucinal wlasnie dol (przyciski OK/Anuluj, opcje kreatora).
+   */
+  private void layoutBottomAligned() {
+    java.awt.Container content = getContentPane();
+    content.removeAll();
+    content.setLayout(new java.awt.BorderLayout(0, 6));
+    if (content instanceof javax.swing.JComponent) {
+      ((javax.swing.JComponent)content).setBorder(javax.swing.BorderFactory.createEmptyBorder(8, 8, 8, 8));
+    }
+    content.add(tabbedWizard, java.awt.BorderLayout.CENTER);
+    javax.swing.JPanel bottom = new javax.swing.JPanel(new java.awt.BorderLayout());
+    javax.swing.JPanel left = new javax.swing.JPanel(new java.awt.FlowLayout(java.awt.FlowLayout.LEFT, 6, 0));
+    left.add(checkClipoard);
+    left.add(checkBackground);
+    javax.swing.JPanel right = new javax.swing.JPanel(new java.awt.FlowLayout(java.awt.FlowLayout.RIGHT, 6, 0));
+    right.add(buttonScriptInfo);
+    right.add(buttonOk);
+    right.add(buttonCancel);
+    bottom.add(left, java.awt.BorderLayout.WEST);
+    bottom.add(right, java.awt.BorderLayout.EAST);
+    content.add(bottom, java.awt.BorderLayout.SOUTH);
+    // srodek moze sie zmniejszac ponizej zawartosci kreatora - dol zostaje widoczny; okno nie mniejsze niz pasek
+    // dolny i skrawek zakladek
+    tabbedWizard.setMinimumSize(new Dimension(100, 60));
+    Dimension b = bottom.getPreferredSize();
+    setMinimumSize(new Dimension(Math.max(300, b.width + 40), b.height + 160));
   }
 
   @Override

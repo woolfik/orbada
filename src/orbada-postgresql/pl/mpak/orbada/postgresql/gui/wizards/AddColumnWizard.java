@@ -1,6 +1,7 @@
 package pl.mpak.orbada.postgresql.gui.wizards;
 
 import java.util.List;
+import javax.swing.JCheckBox;
 import pl.mpak.orbada.postgresql.services.PostgreSQLDbInfoProvider;
 import pl.mpak.usedb.core.Database;
 
@@ -11,11 +12,14 @@ public class AddColumnWizard extends PgWizard {
 
   private final String tableName;
   private final ColumnGridPanel columns;
+  // ORBADA 1.3.4: IF NOT EXISTS - bez bledu, gdy kolumna juz istnieje
+  private final JCheckBox checkIfNotExists;
 
   public AddColumnWizard(Database database, String schemaName, String table) {
     super(database, schemaName);
     tableName = name(this.schemaName, table);
     info("table-name", tableName);
+    checkIfNotExists = atLeast(9, 6) ? check("if-not-exists") : null;
     columns = row(null, new ColumnGridPanel(stringManager, PostgreSQLDbInfoProvider.instance.getDataTypes(database),
       atLeast(10, 0), atLeast(12, 0), atLeast(18, 0)), true);
     columns.addColumn("", "integer", false, false, "", "", "");
@@ -32,7 +36,7 @@ public class AddColumnWizard extends PgWizard {
     StringBuilder sb = new StringBuilder("ALTER TABLE " + tableName);
     String separator = "\n  ";
     for (String column : definitions) {
-      sb.append(separator).append("ADD COLUMN ").append(column);
+      sb.append(separator).append("ADD COLUMN ").append(checkIfNotExists != null && checkIfNotExists.isSelected() ? "IF NOT EXISTS " : "").append(column);
       separator = ",\n  ";
     }
     String pk = columns.primaryKey();

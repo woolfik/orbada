@@ -1,5 +1,6 @@
 package pl.mpak.orbada.oracle.gui.wizards.table;
 
+import pl.mpak.orbada.oracle.gui.wizards.IfExistsOption;
 import pl.mpak.orbada.oracle.OrbadaOraclePlugin;
 import pl.mpak.orbada.oracle.gui.wizards.StorageOptionsWizard;
 import pl.mpak.orbada.oracle.gui.wizards.TableColumnDefinitionWizard;
@@ -22,6 +23,25 @@ public class CreateNormalTableWizard extends SqlCodeWizardPanel {
   private final StringManager stringManager = StringManagerFactory.getStringManager(OrbadaOraclePlugin.class);
 
   private Database database;
+  // ORBADA 1.3.4: IF NOT EXISTS / IF EXISTS (Oracle 23ai+) - pole pod formularzem, klauzula w poleceniu
+  private IfExistsOption ifExists;
+
+  private IfExistsOption ifExists() {
+    if (ifExists == null) {
+      ifExists = new IfExistsOption(database, true);
+    }
+    return ifExists;
+  }
+
+  @Override
+  public javax.swing.JComponent getExtraOptions() {
+    return ifExists().getComponent();
+  }
+
+  public String getSqlCode() {
+    return ifExists().apply(getSqlCodeBase());
+  }
+
   private String schemaName;
   private StorageOptionsWizard storageOptions;
   private TableColumnDefinitionWizard columnDefinition;
@@ -53,7 +73,7 @@ public class CreateNormalTableWizard extends SqlCodeWizardPanel {
     return stringManager.getString("CreateNormalTableWizard-tab-title");
   }
   
-  public String getSqlCode() {
+  private String getSqlCodeBase() {
     getResultMap().put("object_name", textName.getText());
     String storage = storageOptions.getSqlCode();
     String pks = columnDefinition.getSqlCodePk(schemaName, textName.getText());

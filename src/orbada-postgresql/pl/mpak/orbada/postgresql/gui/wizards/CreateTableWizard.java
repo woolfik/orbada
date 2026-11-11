@@ -3,6 +3,7 @@ package pl.mpak.orbada.postgresql.gui.wizards;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.util.List;
+import javax.swing.JCheckBox;
 import javax.swing.JComboBox;
 import pl.mpak.orbada.postgresql.services.PostgreSQLDbInfoProvider;
 import pl.mpak.sky.gui.swing.comp.TextField;
@@ -20,6 +21,8 @@ public class CreateTableWizard extends PgWizard {
   private final TextField textPartition;
   private final TextField textComment;
   private final ColumnGridPanel columns;
+  // ORBADA 1.3.4: IF NOT EXISTS - bez bledu, gdy obiekt juz istnieje
+  private final JCheckBox checkIfNotExists;
 
   public CreateTableWizard(Database database, String schemaName) {
     super(database, schemaName);
@@ -37,6 +40,7 @@ public class CreateTableWizard extends PgWizard {
     });
     textPartition = atLeast(10, 0) ? text("partition-by", "") : null;
     textComment = text("comment", "");
+    checkIfNotExists = atLeast(9, 1) ? check("if-not-exists") : null;
     columns = row(null, new ColumnGridPanel(stringManager, PostgreSQLDbInfoProvider.instance.getDataTypes(database),
       atLeast(10, 0), atLeast(12, 0), atLeast(18, 0)), true);
     columns.addColumn("id", "bigint", true, true, "", atLeast(10, 0) ? "GENERATED ALWAYS AS IDENTITY" : "", "");
@@ -72,7 +76,7 @@ public class CreateTableWizard extends PgWizard {
     } else if (isTemporary()) {
       sb.append("TEMPORARY ");
     }
-    sb.append("TABLE ").append(tableName()).append(" (");
+    sb.append("TABLE ").append(checkIfNotExists != null && checkIfNotExists.isSelected() ? "IF NOT EXISTS " : "").append(tableName()).append(" (");
     String separator = "\n  ";
     for (String column : definitions) {
       sb.append(separator).append(column);

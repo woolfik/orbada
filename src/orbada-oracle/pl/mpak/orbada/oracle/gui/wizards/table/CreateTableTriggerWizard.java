@@ -1,5 +1,6 @@
 package pl.mpak.orbada.oracle.gui.wizards.table;
 
+import pl.mpak.orbada.oracle.gui.wizards.IfExistsOption;
 import java.util.HashMap;
 import javax.swing.DefaultListModel;
 import pl.mpak.orbada.core.Application;
@@ -30,6 +31,25 @@ public class CreateTableTriggerWizard extends SqlCodeWizardPanel {
   private final StringManager stringManager = StringManagerFactory.getStringManager(OrbadaOraclePlugin.class);
 
   private Database database;
+  // ORBADA 1.3.4: IF NOT EXISTS / IF EXISTS (Oracle 23ai+) - pole pod formularzem, klauzula w poleceniu
+  private IfExistsOption ifExists;
+
+  private IfExistsOption ifExists() {
+    if (ifExists == null) {
+      ifExists = new IfExistsOption(database, true);
+    }
+    return ifExists;
+  }
+
+  @Override
+  public javax.swing.JComponent getExtraOptions() {
+    return ifExists().getComponent();
+  }
+
+  public String getSqlCode() {
+    return ifExists().apply(getSqlCodeBase());
+  }
+
   private String schemaName;
   private String tableName;
   private boolean nameChanged = false;
@@ -114,7 +134,7 @@ public class CreateTableTriggerWizard extends SqlCodeWizardPanel {
     return stringManager.getString("CreateTableTriggerWizard-tab-title");
   }
 
-  public String getSqlCode() {
+  private String getSqlCodeBase() {
     getResultMap().put("object_name", textName.getText());
     String idu = "";
     if (checkInsert.isSelected()) {

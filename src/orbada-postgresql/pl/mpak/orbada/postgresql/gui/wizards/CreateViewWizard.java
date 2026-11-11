@@ -17,6 +17,8 @@ public class CreateViewWizard extends PgWizard {
   private final JCheckBox checkMaterialized;
   private final JCheckBox checkReplace;
   private final JCheckBox checkNoData;
+  // ORBADA 1.3.4: IF NOT EXISTS - bez bledu, gdy widok zmaterializowany juz istnieje
+  private final JCheckBox checkIfNotExists;
   private final TextField textComment;
   private final JTextArea textQuery;
 
@@ -28,11 +30,15 @@ public class CreateViewWizard extends PgWizard {
     checkReplace = check("or-replace");
     checkNoData = check("with-no-data");
     checkNoData.setEnabled(false);
+    checkIfNotExists = check("if-not-exists");
+    checkIfNotExists.setEnabled(false);
     checkMaterialized.addActionListener(new ActionListener() {
       @Override
       public void actionPerformed(ActionEvent e) {
         checkReplace.setEnabled(!checkMaterialized.isSelected());
         checkNoData.setEnabled(checkMaterialized.isSelected());
+        // zwykly widok: CREATE OR REPLACE (PostgreSQL nie ma CREATE VIEW IF NOT EXISTS)
+        checkIfNotExists.setEnabled(checkMaterialized.isSelected() && atLeast(9, 5));
       }
     });
     checkMaterialized.setEnabled(atLeast(9, 3));
@@ -56,7 +62,7 @@ public class CreateViewWizard extends PgWizard {
       query = query.substring(0, query.length() - 1);
     }
     if (checkMaterialized.isSelected()) {
-      sql.add("CREATE MATERIALIZED VIEW " + view + " AS\n" + query + (checkNoData.isSelected() ? "\nWITH NO DATA" : ""));
+      sql.add("CREATE MATERIALIZED VIEW " + (checkIfNotExists.isSelected() ? "IF NOT EXISTS " : "") + view + " AS\n" + query + (checkNoData.isSelected() ? "\nWITH NO DATA" : ""));
     } else {
       sql.add("CREATE " + (checkReplace.isSelected() ? "OR REPLACE " : "") + "VIEW " + view + " AS\n" + query);
     }

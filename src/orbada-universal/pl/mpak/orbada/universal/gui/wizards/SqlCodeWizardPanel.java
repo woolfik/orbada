@@ -45,6 +45,14 @@ public abstract class SqlCodeWizardPanel extends javax.swing.JPanel implements C
    */
   public abstract boolean execute();
 
+  /**
+   * ORBADA 1.3.4: dodatkowe opcje pokazywane pod formularzem kreatora (np. pole IF NOT EXISTS) albo null.
+   * Pozwala dodac opcje bez zmiany formularza kreatora.
+   */
+  public javax.swing.JComponent getExtraOptions() {
+    return null;
+  }
+
   public void close() throws IOException {
     
   }

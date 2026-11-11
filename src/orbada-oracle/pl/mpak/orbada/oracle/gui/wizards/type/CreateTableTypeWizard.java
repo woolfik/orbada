@@ -1,5 +1,6 @@
 package pl.mpak.orbada.oracle.gui.wizards.type;
 
+import pl.mpak.orbada.oracle.gui.wizards.IfExistsOption;
 import java.util.HashMap;
 import javax.swing.JTextField;
 import pl.mpak.orbada.core.Application;
@@ -23,6 +24,25 @@ public class CreateTableTypeWizard extends SqlCodeWizardPanel {
   private final StringManager stringManager = StringManagerFactory.getStringManager(OrbadaOraclePlugin.class);
 
   private Database database;
+  // ORBADA 1.3.4: IF NOT EXISTS / IF EXISTS (Oracle 23ai+) - pole pod formularzem, klauzula w poleceniu
+  private IfExistsOption ifExists;
+
+  private IfExistsOption ifExists() {
+    if (ifExists == null) {
+      ifExists = new IfExistsOption(database, true);
+    }
+    return ifExists;
+  }
+
+  @Override
+  public javax.swing.JComponent getExtraOptions() {
+    return ifExists().getComponent();
+  }
+
+  public String getSqlCode() {
+    return ifExists().apply(getSqlCodeBase());
+  }
+
   private String schemaName;
   private Template template;
   
@@ -53,7 +73,7 @@ public class CreateTableTypeWizard extends SqlCodeWizardPanel {
     return stringManager.getString("CreateTableTypeWizard-tab-title");
   }
 
-  public String getSqlCode() {
+  private String getSqlCodeBase() {
     getResultMap().put("object_name", textName.getText());
     if (template == null) {
       return

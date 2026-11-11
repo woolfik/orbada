@@ -1,5 +1,15 @@
 # ORBADA — informacje o wydaniach
 
+## ORBADA 1.3.4 „Fuerteventura” (2026-11-11)
+
+### Nowości
+
+- **IF NOT EXISTS / IF EXISTS w kreatorach** — kreatory tworzenia obiektów Oracle (tabele, indeksy, sekwencje, synonimy, typy, procedury, funkcje, pakiety, wyzwalacze, DB linki, źródła Java) mają pole „IF NOT EXISTS” (bez błędu, gdy obiekt już istnieje), a kreatory usuwania — „IF EXISTS”; pole pojawia się dla Oracle 23ai i nowszych (starsze wersje tej składni nie znają). W kreatorach PostgreSQL IF NOT EXISTS przy tworzeniu tabeli, indeksu, sekwencji, schematu, widoku zmaterializowanego i dodawaniu kolumn.
+
+### Zmiany
+
+- **Podpowiedzi po kropce bez czekania** — po wpisaniu np. `dbms_output.` w edytorze SQL Oracle lista otwiera się od razu z pozycją „Wczytywanie z bazy...”, a metody pakietu (kolumny tabeli itp.) są pobierane ze słownika w tle; można pisać dalej, a po pobraniu lista sama się uzupełnia i filtruje po tym, co dopisano. Wcześniej edytor czekał na zapytanie do słownika (wolne widoki DBA_/ALL_).
+
 ## ORBADA 1.3.3 „Fuerteventura” (2026-11-09)
 
 ### Nowości

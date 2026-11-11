@@ -21,6 +21,8 @@ public class CreateIndexWizard extends PgWizard {
   private final TextField textWhere;
   private final JCheckBox checkNullsNotDistinct;
   private final JCheckBox checkConcurrently;
+  // ORBADA 1.3.4: IF NOT EXISTS - bez bledu, gdy obiekt juz istnieje
+  private final JCheckBox checkIfNotExists;
 
   /**
    * @param table tabela (bez schematu) albo null - wybor z listy
@@ -43,6 +45,7 @@ public class CreateIndexWizard extends PgWizard {
     textInclude = atLeast(11, 0) ? text("index-include", "") : null;
     textWhere = text("index-where", "");
     checkNullsNotDistinct = atLeast(15, 0) ? check("nulls-not-distinct") : null;
+    checkIfNotExists = atLeast(9, 5) ? check("if-not-exists") : null;
     checkConcurrently = check("concurrently");
     checkConcurrently.setEnabled(database.isAutoCommit());
     note("concurrently-hint");
@@ -60,9 +63,13 @@ public class CreateIndexWizard extends PgWizard {
   protected void build(List<String> sql) {
     require(value(comboTable).length() > 0, "wizard-table-required");
     require(value(textColumns).length() > 0, "wizard-columns-required");
+    boolean ifNotExists = checkIfNotExists != null && checkIfNotExists.isSelected();
+    // IF NOT EXISTS wymaga nazwy indeksu
+    require(!ifNotExists || value(textName).length() > 0, "wizard-name-required");
     result("object_name", value(textName));
     sql.add("CREATE " + (checkUnique.isSelected() ? "UNIQUE " : "") + "INDEX " +
       (checkConcurrently.isSelected() ? "CONCURRENTLY " : "") +
+      (ifNotExists ? "IF NOT EXISTS " : "") +
       (value(textName).length() > 0 ? ident(value(textName)) + " " : "") +
       "ON " + name(schemaName, value(comboTable)) +
       (!"btree".equals(value(comboMethod)) && value(comboMethod).length() > 0 ? " USING " + value(comboMethod) : "") +
