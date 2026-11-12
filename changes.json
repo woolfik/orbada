@@ -1,22 +1,43 @@
 {
   "specVersion": "1.0.0.0",
   "application": "Orbada",
-  "generated": "2026-11-12 13:36:31",
+  "generated": "2026-11-12 17:51:35",
   "projectPage": "https://github.com/woolfik/orbada",
   "lastVersion": {
-    "id": "20261112133631-1306000000000000-00000000",
-    "created": "2026-11-12 13:36:31",
-    "updated": "2026-11-12 13:36:31",
+    "id": "20261112175135-1307000000000000-00000000",
+    "created": "2026-11-12 17:51:35",
+    "updated": "2026-11-12 17:51:35",
     "released": "2026-11-12",
-    "version": "1.3.6.505 Fuerteventura, Hiszpania",
+    "version": "1.3.7.506 Fuerteventura, Hiszpania",
     "description": "",
     "downloadPage": "https://github.com/woolfik/orbada/releases/latest",
-    "downloadUrl": "https://github.com/woolfik/orbada/releases/download/v1.3.6/orbada-1.3.6.zip",
-    "sha256": "8ac6901316192135df46d034a0fdc4f349f305779ae88b82aa720a182065abaa",
-    "size": 57761208
+    "downloadUrl": "https://github.com/woolfik/orbada/releases/download/v1.3.7/orbada-1.3.7.zip",
+    "sha256": "e390d16f42977409794417ad1d5055c961b200ff46a9dcad4e3080afec5b94f7",
+    "size": 57761668
   },
   "versions": [
     {
+      "id": "20261112175135-1307000000000000-00000000",
+      "created": "2026-11-12 17:51:35",
+      "updated": "2026-11-12 17:51:35",
+      "released": "2026-11-12",
+      "version": "1.3.7.506 Fuerteventura, Hiszpania",
+      "description": "",
+      "downloadPage": "https://github.com/woolfik/orbada/releases/latest",
+      "downloadUrl": "https://github.com/woolfik/orbada/releases/download/v1.3.7/orbada-1.3.7.zip",
+      "sha256": "e390d16f42977409794417ad1d5055c961b200ff46a9dcad4e3080afec5b94f7",
+      "size": 57761668,
+      "details": [
+        {
+          "id": "20261112175135-1307000000000000-00000001",
+          "created": "2026-11-12 17:51:35",
+          "updated": "2026-11-12 17:51:35",
+          "type": "Fixed",
+          "title": "Widok \u201eU\u017cytkownicy\u201d: zak\u0142adki pod list\u0105 id\u0105 za zaznaczonym u\u017cytkownikiem"
+        }
+      ]
+    },
+{
       "id": "20261112133631-1306000000000000-00000000",
       "created": "2026-11-12 13:36:31",
       "updated": "2026-11-12 13:36:31",

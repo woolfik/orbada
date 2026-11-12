@@ -1,5 +1,6 @@
 package pl.mpak.orbada.universal.gui.tabbed;
 
+import pl.mpak.util.StringUtil;
 import java.awt.Color;
 import java.io.IOException;
 import javax.swing.JToolBar;
@@ -132,7 +133,8 @@ public abstract class UniversalSourceTab extends javax.swing.JPanel implements I
   }
   
   public void refresh(String catalogName, String schemaName, String objectName) {
-    if (!currentSchemaName.equals(schemaName) || !currentObjectName.equals(objectName) || requestRefresh) {
+    // ORBADA 1.3.7: bez NPE dla widokow bez schematu (schemaName null, np. Uzytkownicy)
+    if (!StringUtil.equals(currentSchemaName, schemaName) || !StringUtil.equals(currentObjectName, objectName) || requestRefresh) {
       currentSchemaName = schemaName;
       currentObjectName = objectName;
       if (SwingUtil.isVisible(this)) {

@@ -1,5 +1,11 @@
 # ORBADA — informacje o wydaniach
 
+## ORBADA 1.3.7 „Fuerteventura” (2026-11-12)
+
+### Poprawki
+
+- **Widok „Użytkownicy”: zakładki pod listą idą za zaznaczonym użytkownikiem** — po przejściu na inny wiersz listy szczegóły, role, uprawnienia, limity, sesje, proxy i skrypt zostawały na pierwszym użytkowniku. Poprawka dotyczy też innych widoków bez schematu, które używają tych samych zakładek.
+
 ## ORBADA 1.3.6 „Fuerteventura” (2026-11-12)
 
 ### Nowości

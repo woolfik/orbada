@@ -103,7 +103,8 @@ public abstract class UniversalPropDetailsTab extends javax.swing.JPanel impleme
   }
   
   public void refresh(String catalogName, String schemaName, String objectName) {
-    if (!currentSchemaName.equals(schemaName) || !currentObjectName.equals(objectName) || requestRefresh) {
+    // ORBADA 1.3.7: bez NPE dla widokow bez schematu (schemaName null, np. Uzytkownicy)
+    if (!StringUtil.equals(currentSchemaName, schemaName) || !StringUtil.equals(currentObjectName, objectName) || requestRefresh) {
       currentSchemaName = schemaName;
       currentObjectName = objectName;
       if (SwingUtil.isVisible(this)) {
