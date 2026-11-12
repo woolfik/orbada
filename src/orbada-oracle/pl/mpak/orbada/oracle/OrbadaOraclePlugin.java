@@ -18,6 +18,7 @@ import pl.mpak.orbada.oracle.services.OracleDbLinksView;
 import pl.mpak.orbada.oracle.services.OracleDbmsOutputConnectionSettingsProvider;
 import pl.mpak.orbada.oracle.services.OracleDbmsOutputSettingsProvider;
 import pl.mpak.orbada.oracle.services.OracleDbmsOutputView;
+import pl.mpak.orbada.oracle.services.OracleDebuggerView;
 import pl.mpak.orbada.oracle.services.OracleDictionaryView;
 import pl.mpak.orbada.oracle.services.OracleDirectoriesView;
 import pl.mpak.orbada.oracle.services.OracleExplainPlanProvider;
@@ -249,6 +250,7 @@ public class OrbadaOraclePlugin extends OrbadaPlugin {
     classList.add(OracleAutoCompleteService.class);
     classList.add(OracleExplainPlanSourceActionProvider.class);
     classList.add(OracleCopySqlFromSourceActionProvider.class);
+    classList.add(OracleDebuggerView.class); // ORBADA 1.3.6: debugger PL/SQL (DBMS_DEBUG)
     initTemplates();
   }
   

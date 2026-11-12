@@ -19,6 +19,8 @@ import pl.mpak.orbada.oracle.dba.services.OracleParametersView;
 import pl.mpak.orbada.oracle.dba.services.OracleRebuildIndexAction;
 import pl.mpak.orbada.oracle.dba.services.OracleRowMovementTableAction;
 import pl.mpak.orbada.oracle.dba.services.OracleSessionsView;
+import pl.mpak.orbada.oracle.dba.services.OracleUsersView;
+import pl.mpak.orbada.oracle.dba.services.OracleUserActionsService;
 import pl.mpak.orbada.oracle.dba.services.OracleSetDbParameterAction;
 import pl.mpak.orbada.oracle.dba.services.OracleShrinkTableAction;
 import pl.mpak.orbada.oracle.dba.services.OracleVisualDataFileView;
@@ -190,6 +192,8 @@ public class OrbadaOracleDbaPlugin extends OrbadaPlugin {
         classList.add(OracleSetDbParameterAction.class);
         classList.add(OracleGotoLockSIDAction.class);
         classList.add(OracleGotoSessionSIDAction.class);
+        classList.add(OracleUsersView.class);
+        classList.add(OracleUserActionsService.class);
       }
     }
     return true;

@@ -3,6 +3,7 @@ package pl.mpak.orbada.oracle.dba.services;
 import pl.mpak.orbada.oracle.OrbadaOraclePlugin;
 import pl.mpak.orbada.oracle.dba.OrbadaOracleDbaPlugin;
 import pl.mpak.orbada.oracle.dba.Sql;
+import pl.mpak.orbada.oracle.dba.gui.users.UsersSql;
 import pl.mpak.orbada.plugins.providers.DatabaseProvider;
 import pl.mpak.usedb.core.Database;
 import pl.mpak.usedb.core.Query;
@@ -102,6 +103,59 @@ public class OracleDbaDatabaseProvider extends DatabaseProvider {
       }
     }
     catch (Exception ex) {
+      ExceptionUtil.processException(ex);
+    }
+    finally {
+      query.close();
+    }
+    detectUserManagement(database);
+  }
+
+  /**
+   * ORBADA 1.3.5: uprawnienia dla widoku "Uzytkownicy" - dostep do DBA_USERS i przywileje sesji potrzebne do akcji
+   * (ustalane raz po polaczeniu, zeby GUI nie pytalo bazy).
+   */
+  private void detectUserManagement(Database database) {
+    Query query = database.createQuery();
+    try {
+      try {
+        query.open(UsersSql.getDbaUsersAccess());
+        database.getUserProperties().put("users-dba-view", "true");
+      }
+      catch (Exception ex) {
+        database.getUserProperties().put("users-dba-view", "false");
+      }
+      StringBuilder privs = new StringBuilder();
+      query.open(UsersSql.getSessionPrivileges());
+      while (!query.eof()) {
+        privs.append(privs.length() > 0 ? "," : "").append(query.fieldByName("privilege").getString());
+        query.next();
+      }
+      query.open(UsersSql.getAdminOptions());
+      if (query.fieldByName("roles").getInteger() > 0) {
+        privs.append(privs.length() > 0 ? "," : "").append(UsersSql.ADMIN_ROLE);
+      }
+      if (query.fieldByName("sys_privs").getInteger() > 0) {
+        privs.append(privs.length() > 0 ? "," : "").append(UsersSql.ADMIN_SYS_PRIV);
+      }
+      if (query.fieldByName("obj_grants").getInteger() > 0) {
+        privs.append(privs.length() > 0 ? "," : "").append(UsersSql.OBJ_GRANTOR);
+      }
+      database.getUserProperties().put("users-current-user", query.fieldByName("username").getString());
+      database.getUserProperties().put("users-privs", privs.toString());
+      StringBuilder cols = new StringBuilder();
+      query.open(UsersSql.getDictColumns());
+      while (!query.eof()) {
+        cols.append(cols.length() > 0 ? "," : "").append(query.fieldByName("col").getString());
+        query.next();
+      }
+      database.getUserProperties().put("users-dict-cols", cols.toString());
+    }
+    catch (Exception ex) {
+      // bez ustalonych przywilejow akcje sa dostepne, o uprawnieniach rozstrzyga baza; reszta stanu wyzerowana
+      database.getUserProperties().remove("users-privs");
+      database.getUserProperties().remove("users-current-user");
+      database.getUserProperties().remove("users-dict-cols");
       ExceptionUtil.processException(ex);
     }
     finally {

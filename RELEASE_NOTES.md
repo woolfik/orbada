@@ -1,5 +1,13 @@
 # ORBADA — informacje o wydaniach
 
+## ORBADA 1.3.6 „Fuerteventura” (2026-11-12)
+
+### Nowości
+
+- **Zarządzanie użytkownikami Oracle** — nowy widok „Użytkownicy” (menu Oracle DBA, jak w Toad): lista użytkowników bazy ze stanem konta (otwarte, zablokowane, wygasłe), datami blokady i wygaśnięcia hasła, przestrzeniami, profilem i ostatnim logowaniem, a pod nią zakładki: szczegóły, role, uprawnienia systemowe i do obiektów, limity na przestrzeniach, obiekty, sesje, proxy i skrypt odtworzenia użytkownika. Akcje: utworzenie użytkownika (także na wzór istniejącego — z rolami, uprawnieniami i limitami), zmiana hasła, zablokowanie i odblokowanie konta, wygaszenie hasła, zmiana przestrzeni, profilu i ról domyślnych, limity, nadawanie i odbieranie ról oraz uprawnień, połączenia proxy, zakończenie sesji użytkownika i usunięcie użytkownika. Akcje, do których zalogowany użytkownik nie ma uprawnień, są wyłączone; bez uprawnień administratora można zmienić własne hasło (z podaniem obecnego). Każda operacja — także zablokowanie, odblokowanie, wygaszenie hasła czy zakończenie sesji — otwiera okno z zakładką SQL z poleceniem, które Orbada wykona (do skopiowania np. do skryptu Liquibase); hasła nie pojawiają się w podglądzie SQL.
+
+- **Debugger PL/SQL z podłączeniem do sesji innej aplikacji** — nowy widok „Debugger PL/SQL” (menu Oracle → zaawansowane). Aplikacja (np. program w Delphi łączący się przez OCI) włącza debugowanie swojej sesji (`DBMS_DEBUG.INITIALIZE` + `DEBUG_ON`) i pokazuje identyfikator; po wklejeniu go w Orbadzie i podłączeniu każde wywołanie PL/SQL z aplikacji zatrzymuje się na breakpointach ustawionych kliknięciem na marginesie źródła pakietu, procedury, funkcji lub wyzwalacza. Na postoju: kontynuacja, krok, wejście do wywołania, wyjście (Shift+F8), przerwanie wykonania, stos wywołań z podglądem każdej ramki, zmienne (parametry, zmienne lokalne, zmienne pętli i globalne pakietu) z możliwością zmiany wartości, obserwowane wyrażenia i opcjonalne zatrzymanie na wyjątku. Obiekt bez informacji do debugowania jest oznaczony i można go skompilować z DEBUG jednym przyciskiem; przycisk „Kod dla aplikacji” pokazuje gotowy blok do wywołania w aplikacji i potrzebne uprawnienia. Gdy Orbada się odłączy albo zniknie, aplikacja nie zawiesza się — czeka najwyżej ustawiony timeout i działa dalej bez debugowania.
+
 ## ORBADA 1.3.5 „Fuerteventura” (2026-11-11)
 
 ### Zmiany
