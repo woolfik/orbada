@@ -1,5 +1,16 @@
 # ORBADA — informacje o wydaniach
 
+## ORBADA 1.3.8 „Fuerteventura” (2026-11-14)
+
+### Nowości
+
+- **Pełna obsługa SQLite** — nowy sterownik SQLite (sqlite-jdbc 3.54, pozycja „SQLite (sqlite-jdbc 3)” na liście sterowników; dotychczasowy był z 2008 roku i nie znał nowszych funkcji SQLite). Nowe widoki: obiekty z wyszukiwaniem po nazwie, typie, tabeli i treści SQL, indeksy (kolumny, indeksy częściowe i na wyrażeniach, źródło), liczniki AUTOINCREMENT, parametry PRAGMA z opisami i zmianą wartości, funkcje SQL oraz rozmiar tabel i indeksów. Tabela ma nowe zakładki: szczegóły (STRICT, WITHOUT ROWID, licznik AUTOINCREMENT, liczba wierszy z ANALYZE, rozmiar), klucze obce z ON UPDATE/ON DELETE, tabele wskazujące na nią, obiekty jej używające i statystyki; kolumny pokazują wartość domyślną i kolumny generowane. Kreatory z zakładką SQL: nowa tabela, kopia tabeli (z definicją, danymi i indeksami), zmiana nazwy tabeli, dodanie, zmiana nazwy i usunięcie kolumny, nowy indeks (także częściowy i na wyrażeniu), widok, wyzwalacz (także INSTEAD OF na widoku), zmiana parametru PRAGMA, ustawienie i zerowanie licznika AUTOINCREMENT, usuwanie obiektów i wszystkich wierszy tabeli, ANALYZE, REINDEX. Dla bazy: kopia do pliku w trakcie pracy (VACUUM INTO), VACUUM, ANALYZE, PRAGMA optimize, punkt kontrolny WAL, sprawdzenie integralności i kluczy obcych (także pojedynczej tabeli). Wszystkie widoki SQLite pozwalają wybrać bazę dołączoną przez ATTACH albo temp.
+- **Oracle: Wyrównaj dane (MERGE)** — w edytorze SQL (menu Zapytanie i menu pod prawym przyciskiem) z zapytania pod kursorem, np. `select * from tabela@dblink where ...`, powstaje blok PL/SQL, który kopiuje wiersze do tej samej tabeli w bieżącej bazie (albo do wskazanej innej tabeli). Klucz główny z IDENTITY lub z sekwencji (`XXX_ID` → `XXX_SEQ.nextval`) jest pomijany i wiersze są dopasowywane po kluczu unikalnym. Identyfikatory w kluczach obcych są przeliczane na te z bieżącej bazy według klucza unikalnego tabeli nadrzędnej, a brakujące wiersze nadrzędne są najpierw kopiowane ze źródła (także ich własne klucze obce). Przed wstawieniem skryptu do edytora można zmienić klucz dopasowania i wyłączyć aktualizację istniejących wierszy albo kopiowanie wierszy nadrzędnych. Skrypt nie zatwierdza zmian.
+
+### Poprawki
+
+- **SQLite: skrypt tabeli zawiera wszystkie indeksy** — wcześniej tylko pierwszy; nazwy z apostrofem lub znakami specjalnymi nie psują już zapytań list i źródeł.
+
 ## ORBADA 1.3.7 „Fuerteventura” (2026-11-12)
 
 ### Poprawki

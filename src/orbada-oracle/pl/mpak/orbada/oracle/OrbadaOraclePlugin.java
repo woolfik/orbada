@@ -267,6 +267,8 @@ public class OrbadaOraclePlugin extends OrbadaPlugin {
       if (Consts.orbadaUniversalPluginId.equals(plugin.getUniqueID())) {
         classList.add(UniversalColumnProvider.class);
         classList.add(OracleExplainPlanProvider.class);
+        // ORBADA 1.3.8: Wyrownaj dane (MERGE z zapytania przez dblink)
+        classList.add(pl.mpak.orbada.oracle.services.OracleDataSyncProvider.class);
         classList.add(UniversalResultDbmsOutputProvider.class);
         classList.add(UniversalErrorPosition.class);
       }

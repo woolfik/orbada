@@ -642,6 +642,15 @@ public class InternalDatabase extends OrbadaDatabase {
               "VALUES('20261109000000-0000000000000004-00000002',NULL,'MySQL (Connector/J 26)','./jdbc/mysql-connector-j.jar','MySQL','com.mysql.cj.jdbc.Driver','jdbc:mysql://{host}:{port}[3306]/{database}')");
             Logger.getLogger("orbada").info("IDE:UPDATE: Driver MySQL (Connector/J 26) added");
           }
+          // ORBADA 1.3.8: nowy sterownik SQLite (xerial sqlite-jdbc 3, SQLite 3.5x) - osobny wpis jak pgjdbc; stary
+          // ./jdbc/sqlitejdbc.jar zostaje dla profili wspoldzielonych z 1.2.6
+          query.open("select drv_id from drivers where drv_id = '20261114000000-0000000000000005-00000002'");
+          if (query.eof()) {
+            orbadaDatabase.executeCommand(
+              "INSERT INTO DRIVERS (DRV_ID, DRV_USR_ID, DRV_NAME, DRV_LIBRARY_SOURCE, DRV_TYPE_NAME, DRV_CLASS_NAME, DRV_URL_TEMPLATE) " +
+              "VALUES('20261114000000-0000000000000005-00000002',NULL,'SQLite (sqlite-jdbc 3)','./jdbc/sqlite-jdbc.jar','SQLite','org.sqlite.JDBC','jdbc:sqlite:$(database)')");
+            Logger.getLogger("orbada").info("IDE:UPDATE: Driver SQLite (sqlite-jdbc 3) added");
+          }
         }
       } finally {
         query.close();

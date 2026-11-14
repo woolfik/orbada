@@ -18,15 +18,15 @@ public class Sql {
   }
 
   public static String getTableList(String database) {
-    return "select name, '" +database +"' database from " +SQLUtil.createSqlName(database, "sqlite_master") +" where type = 'table' order by name";
+    return "select name, " +SQLiteSql.lit(database) +" database from " +SQLUtil.createSqlName(database, "sqlite_master") +" where type = 'table' order by name";
   }
   
   public static String getViewList(String database) {
-    return "select name, '" +database +"' database from " +SQLUtil.createSqlName(database, "sqlite_master") +" where type = 'view' order by name";
+    return "select name, " +SQLiteSql.lit(database) +" database from " +SQLUtil.createSqlName(database, "sqlite_master") +" where type = 'view' order by name";
   }
 
   public static String getTriggerList(String database) {
-    return "select name, tbl_name, '" +database +"' database from " +SQLUtil.createSqlName(database, "sqlite_master") +" where type = 'trigger' order by name";
+    return "select name, tbl_name, " +SQLiteSql.lit(database) +" database from " +SQLUtil.createSqlName(database, "sqlite_master") +" where type = 'trigger' order by name";
   }
 
   public static String getColumnList(String database, String table) {
@@ -42,15 +42,15 @@ public class Sql {
   }
 
   public static String getTableTriggerList(String database, String table) {
-    return "select name, tbl_name, '" +database +"' database from " +SQLUtil.createSqlName(database, "sqlite_master") +" where type = 'trigger' and tbl_name = '" +table +"' order by name";
+    return "select name, tbl_name, " +SQLiteSql.lit(database) +" database from " +SQLUtil.createSqlName(database, "sqlite_master") +" where type = 'trigger' and tbl_name = " +SQLiteSql.lit(table) +" order by name";
   }
 
   public static String getObjectSource(String database, String type, String object) {
-    return "select sql from " +SQLUtil.createSqlName(database, "sqlite_master") +" where type = '" +type +"' and name = '" +object +"'";
+    return "select sql from " +SQLUtil.createSqlName(database, "sqlite_master") +" where type = " +SQLiteSql.lit(type) +" and name = " +SQLiteSql.lit(object) +"";
   }
 
   public static String getIndexListSource(String database, String table) {
-    return "select name, sql from " +SQLUtil.createSqlName(database, "sqlite_master") +" where type = 'index' and tbl_name = '" +table +"' and sql is not null";
+    return "select name, sql from " +SQLUtil.createSqlName(database, "sqlite_master") +" where type = 'index' and tbl_name = " +SQLiteSql.lit(table) +" and sql is not null";
   }
 
 }

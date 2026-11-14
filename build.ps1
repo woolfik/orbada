@@ -199,6 +199,10 @@ $jdbcDrivers = @(
   # potrzebny tylko do X DevAPI
   @{ Url = "https://repo1.maven.org/maven2/com/mysql/mysql-connector-j/26.10.0/mysql-connector-j-26.10.0.jar"
      Sha256 = "cef70caf532833c9ab8f41f74773ce22c08bf503fad215c9c2ee1e9db87e759e"; Plik = "mysql-connector-j.jar" }
+  # SQLite (1.3.8): sqlitejdbc z 1.2.6 (zentus, 2008) to SQLite 3.5 bez funkcji pragma_*, RENAME/DROP COLUMN, STRICT,
+  # kolumn generowanych i dbstat; xerial sqlite-jdbc z bibliotekami natywnymi (Windows/Linux/macOS), slf4j opcjonalny
+  @{ Url = "https://repo1.maven.org/maven2/org/xerial/sqlite-jdbc/3.54.1.0/sqlite-jdbc-3.54.1.0.jar"
+     Sha256 = "f8dce420a6016278497f4f0560f65602b9db858de141b541cf91a4644ebe4639"; Plik = "sqlite-jdbc.jar" }
 )
 foreach ($d in $jdbcDrivers) {
   Copy-Item (Get-Pobrany $d) (Join-Path $out "jdbc\$($d.Plik)")

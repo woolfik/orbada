@@ -175,6 +175,14 @@ public class OrbadaSQLitePlugin extends OrbadaPlugin {
     classList.add(PragmaDatabaseLockingModeAction.class);
     classList.add(PragmaDatabaseCacheSizeAction.class);
     classList.add(PragmaDatabaseIntegrityCheckAction.class);
+    // ORBADA 1.3.8: obiekty (wyszukiwanie), indeksy, AUTOINCREMENT, pragmy, funkcje, rozmiary; akcje z kreatorami
+    classList.add(pl.mpak.orbada.sqlite.services.SQLiteExtViews.SQLiteObjectsView.class);
+    classList.add(pl.mpak.orbada.sqlite.services.SQLiteExtViews.SQLiteIndexesView.class);
+    classList.add(pl.mpak.orbada.sqlite.services.SQLiteExtViews.SQLiteSequencesView.class);
+    classList.add(pl.mpak.orbada.sqlite.services.SQLiteExtViews.SQLitePragmasView.class);
+    classList.add(pl.mpak.orbada.sqlite.services.SQLiteExtViews.SQLiteFunctionsView.class);
+    classList.add(pl.mpak.orbada.sqlite.services.SQLiteExtViews.SQLiteSizesView.class);
+    classList.add(pl.mpak.orbada.sqlite.services.SQLiteActionsService.class);
     initTemplates();
   }
   

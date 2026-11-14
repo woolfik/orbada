@@ -1,22 +1,57 @@
 {
   "specVersion": "1.0.0.0",
   "application": "Orbada",
-  "generated": "2026-11-12 17:51:35",
+  "generated": "2026-11-14 17:41:27",
   "projectPage": "https://github.com/woolfik/orbada",
   "lastVersion": {
-    "id": "20261112175135-1307000000000000-00000000",
-    "created": "2026-11-12 17:51:35",
-    "updated": "2026-11-12 17:51:35",
-    "released": "2026-11-12",
-    "version": "1.3.7.506 Fuerteventura, Hiszpania",
+    "id": "20261114174127-1308000000000000-00000000",
+    "created": "2026-11-14 17:41:27",
+    "updated": "2026-11-14 17:41:27",
+    "released": "2026-11-14",
+    "version": "1.3.8.507 Fuerteventura, Hiszpania",
     "description": "",
     "downloadPage": "https://github.com/woolfik/orbada/releases/latest",
-    "downloadUrl": "https://github.com/woolfik/orbada/releases/download/v1.3.7/orbada-1.3.7.zip",
-    "sha256": "e390d16f42977409794417ad1d5055c961b200ff46a9dcad4e3080afec5b94f7",
-    "size": 57761668
+    "downloadUrl": "https://github.com/woolfik/orbada/releases/download/v1.3.8/orbada-1.3.8.zip",
+    "sha256": "979609006aef7c5ee03fd5b0b73cfd675fdca0668eb5c7e6f6711c36bb75aba6",
+    "size": 70000932
   },
   "versions": [
     {
+      "id": "20261114174127-1308000000000000-00000000",
+      "created": "2026-11-14 17:41:27",
+      "updated": "2026-11-14 17:41:27",
+      "released": "2026-11-14",
+      "version": "1.3.8.507 Fuerteventura, Hiszpania",
+      "description": "",
+      "downloadPage": "https://github.com/woolfik/orbada/releases/latest",
+      "downloadUrl": "https://github.com/woolfik/orbada/releases/download/v1.3.8/orbada-1.3.8.zip",
+      "sha256": "979609006aef7c5ee03fd5b0b73cfd675fdca0668eb5c7e6f6711c36bb75aba6",
+      "size": 70000932,
+      "details": [
+        {
+          "id": "20261114174127-1308000000000000-00000001",
+          "created": "2026-11-14 17:41:27",
+          "updated": "2026-11-14 17:41:27",
+          "type": "Added",
+          "title": "Pe\u0142na obs\u0142uga SQLite"
+        },
+        {
+          "id": "20261114174127-1308000000000000-00000002",
+          "created": "2026-11-14 17:41:27",
+          "updated": "2026-11-14 17:41:27",
+          "type": "Added",
+          "title": "Oracle: Wyr\u00f3wnaj dane (MERGE)"
+        },
+        {
+          "id": "20261114174127-1308000000000000-00000003",
+          "created": "2026-11-14 17:41:27",
+          "updated": "2026-11-14 17:41:27",
+          "type": "Fixed",
+          "title": "SQLite: skrypt tabeli zawiera wszystkie indeksy"
+        }
+      ]
+    },
+{
       "id": "20261112175135-1307000000000000-00000000",
       "created": "2026-11-12 17:51:35",
       "updated": "2026-11-12 17:51:35",

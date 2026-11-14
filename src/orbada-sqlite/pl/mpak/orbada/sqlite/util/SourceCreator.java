@@ -58,7 +58,8 @@ public class SourceCreator {
         String text = source.fieldByName("sql").getString();
         source.close();
         if (!StringUtil.isEmpty(text)) {
-          text = text.replaceFirst("(" +objectName +")|(\"" +objectName +")\"", database.quoteName(databaseName, objectName));
+          // ORBADA 1.3.8: nazwa jako tekst (Pattern.quote), zamiennik bez interpretacji $ i backslash
+          text = text.replaceFirst("(" +java.util.regex.Pattern.quote(objectName) +")|(\"" +java.util.regex.Pattern.quote(objectName) +")\"", java.util.regex.Matcher.quoteReplacement(database.quoteName(databaseName, objectName)));
           if (StringUtil.equalsIgnoreCase(objectType, "view")) {
             text = "DROP VIEW " +database.quoteName(databaseName, objectName) +"\n/\n" +text +"\n/\n";
           }
@@ -92,16 +93,17 @@ public class SourceCreator {
         String text = source.fieldByName("sql").getString();
         String name = source.fieldByName("name").getString();
         if (!StringUtil.isEmpty(text)) {
-          text = text.replaceFirst("(" +name +")|(\"" +name +")\"", database.quoteName(databaseName, name));
+          text = text.replaceFirst("(" +java.util.regex.Pattern.quote(name) +")|(\"" +java.util.regex.Pattern.quote(name) +")\"", java.util.regex.Matcher.quoteReplacement(database.quoteName(databaseName, name)));
         }
         if (sb.length() > 0) {
           sb.append("\n");
         }
         sb.append(text);
         sb.append("\n/");
-        return sb.toString();
+        source.next();
       }
-      return "";
+      // ORBADA 1.3.8: wszystkie indeksy (wczesniej return w petli - tylko pierwszy)
+      return sb.toString();
     }
     catch (Exception ex) {
       ExceptionUtil.processException(ex);

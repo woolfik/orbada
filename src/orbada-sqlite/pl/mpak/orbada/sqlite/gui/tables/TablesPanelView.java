@@ -47,7 +47,8 @@ public class TablesPanelView extends UniversalViewTabs {
 
   @Override
   public String getSchemaColumnName() {
-    return null;
+    // ORBADA 1.3.8: wybor bazy (main, temp, ATTACH) - kolumna database i parametr :database
+    return "database";
   }
 
   @Override
@@ -64,7 +65,7 @@ public class TablesPanelView extends UniversalViewTabs {
 
   @Override
   public String getSql(SqlFilter filter) {
-    return Sql.getTableList(currentSchemaName);
+    return "select * from (\n" +Sql.getTableList(currentSchemaName) +"\n) where :database is not null";
   }
 
   @Override
@@ -74,7 +75,9 @@ public class TablesPanelView extends UniversalViewTabs {
 
   @Override
   public String[] getSchemaList() {
-    return SQLiteDbInfoProvider.instance.getSchemas(getDatabase());
+    // ORBADA 1.3.8: lista biezaca (po ATTACH/DETACH), nie z pamieci podrecznej DbInfo
+    java.util.List<String> list = pl.mpak.orbada.sqlite.SQLiteSql.databases(getDatabase());
+    return list.isEmpty() ? SQLiteDbInfoProvider.instance.getSchemas(getDatabase()) : list.toArray(new String[list.size()]);
   }
 
 }
