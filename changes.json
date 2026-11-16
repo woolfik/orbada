@@ -1,22 +1,50 @@
 {
   "specVersion": "1.0.0.0",
   "application": "Orbada",
-  "generated": "2026-11-14 17:41:27",
+  "generated": "2026-11-16 09:22:41",
   "projectPage": "https://github.com/woolfik/orbada",
   "lastVersion": {
-    "id": "20261114174127-1308000000000000-00000000",
-    "created": "2026-11-14 17:41:27",
-    "updated": "2026-11-14 17:41:27",
-    "released": "2026-11-14",
-    "version": "1.3.8.507 Fuerteventura, Hiszpania",
+    "id": "20261116092241-1309000000000000-00000000",
+    "created": "2026-11-16 09:22:41",
+    "updated": "2026-11-16 09:22:41",
+    "released": "2026-11-16",
+    "version": "1.3.9.508 Fuerteventura, Hiszpania",
     "description": "",
     "downloadPage": "https://github.com/woolfik/orbada/releases/latest",
-    "downloadUrl": "https://github.com/woolfik/orbada/releases/download/v1.3.8/orbada-1.3.8.zip",
-    "sha256": "979609006aef7c5ee03fd5b0b73cfd675fdca0668eb5c7e6f6711c36bb75aba6",
-    "size": 70000932
+    "downloadUrl": "https://github.com/woolfik/orbada/releases/download/v1.3.9/orbada-1.3.9.zip",
+    "sha256": "aa5026e859b7782340864e06fae970b3bd4f6f2b1c8904c690675d7ba83b4c18",
+    "size": 70001855
   },
   "versions": [
     {
+      "id": "20261116092241-1309000000000000-00000000",
+      "created": "2026-11-16 09:22:41",
+      "updated": "2026-11-16 09:22:41",
+      "released": "2026-11-16",
+      "version": "1.3.9.508 Fuerteventura, Hiszpania",
+      "description": "",
+      "downloadPage": "https://github.com/woolfik/orbada/releases/latest",
+      "downloadUrl": "https://github.com/woolfik/orbada/releases/download/v1.3.9/orbada-1.3.9.zip",
+      "sha256": "aa5026e859b7782340864e06fae970b3bd4f6f2b1c8904c690675d7ba83b4c18",
+      "size": 70001855,
+      "details": [
+        {
+          "id": "20261116092241-1309000000000000-00000001",
+          "created": "2026-11-16 09:22:41",
+          "updated": "2026-11-16 09:22:41",
+          "type": "Fixed",
+          "title": "Oracle, Wyr\u00f3wnaj dane: kolumny tabel nadrz\u0119dnych sprawdzane w \u017ar\u00f3dle"
+        },
+        {
+          "id": "20261116092241-1309000000000000-00000002",
+          "created": "2026-11-16 09:22:41",
+          "updated": "2026-11-16 09:22:41",
+          "type": "Fixed",
+          "title": "Oracle, Wyr\u00f3wnaj dane: skrypt bez pustych linii"
+        }
+      ]
+    },
+{
       "id": "20261114174127-1308000000000000-00000000",
       "created": "2026-11-14 17:41:27",
       "updated": "2026-11-14 17:41:27",

@@ -113,6 +113,24 @@ public class DataSyncGenerator {
     public final List<Fk> fks = new ArrayList<Fk>();
     /** Sekwencja klucza glownego (owner.nazwa w postaci do SQL) wg nazwy XXX_ID -> XXX_SEQ */
     public String seq;
+    /**
+     * Kolumny tej tabeli w zrodle (tabele nadrzedne przez dblink - zrodlo bywa w innej wersji niz biezaca baza);
+     * null = nie sprawdzane (tabela docelowa: kolumny zapytania)
+     */
+    public List<String> srcCols;
+    /** Tabeli nadrzednej nie ma w zrodle (zapytanie przez dblink sie nie udalo) */
+    public String srcError;
+
+    /** Kolumny wspolne z zrodlem - tylko te moga byc polami rekordu petli po zrodle (r.kolumna) */
+    public List<String> syncCols() {
+      List<String> result = new ArrayList<String>();
+      for (Col c : cols) {
+        if (srcCols == null || srcCols.contains(c.name)) {
+          result.add(c.name);
+        }
+      }
+      return result;
+    }
 
     public String id() {
       return owner + "." + name;
@@ -392,6 +410,33 @@ public class DataSyncGenerator {
     }
   }
 
+  /** Kolumny tabeli nadrzednej w zrodle (bez nich skrypt odwolywalby sie do r.kolumna, ktorej rekord nie ma) */
+  private static void describeSource(Connection conn, Model m, Table p) {
+    try {
+      Statement st = conn.createStatement();
+      try {
+        ResultSet rs = st.executeQuery("select * from " + sourceName(m, p) + " where 1 = 0");
+        ResultSetMetaData md = rs.getMetaData();
+        p.srcCols = new ArrayList<String>();
+        for (int i = 1; i <= md.getColumnCount(); i++) {
+          p.srcCols.add(md.getColumnName(i));
+        }
+        rs.close();
+      } finally {
+        st.close();
+      }
+    } catch (SQLException ex) {
+      p.srcError = ex.getMessage() == null ? ex.toString() : ex.getMessage().trim().split("\n")[0];
+    }
+  }
+
+  /** Tabela nadrzedna w zrodle: ten sam wlasciciel co tabela docelowa -> wlasciciel tabeli z zapytania */
+  static String sourceName(Model m, Table p) {
+    String owner = p.owner.equals(m.target.owner) ? m.source.owner : p.owner;
+    String s = (owner == null ? "" : id(owner) + ".") + id(p.name);
+    return m.source.link == null ? s : s + "@" + m.source.link;
+  }
+
   /** Tabele nadrzedne kluczy obcych (wszerz): docelowej - tylko FK z kolumn zapytania, nadrzednych - wszystkie */
   private static void loadParents(Connection conn, Model m, int major) throws SQLException {
     List<Table> queue = new ArrayList<Table>();
@@ -406,6 +451,7 @@ public class DataSyncGenerator {
         String id = fk.rOwner + "." + fk.rTable;
         if (!m.tables.containsKey(id) && m.tables.size() < MAX_TABLES) {
           Table p = loadTable(conn, fk.rOwner, fk.rTable, major);
+          describeSource(conn, m, p);
           m.tables.put(id, p);
           queue.add(p);
         }
@@ -722,7 +768,12 @@ public class DataSyncGenerator {
       }
       for (Ref r : refs.values()) {
         if (r.parent != t) {
-          describeTable(sb, r.parent, new HashSet<String>(r.parent.colNames()), defaultKey(r.parent, new HashSet<String>(r.parent.colNames())), false);
+          describeTable(sb, r.parent, new HashSet<String>(r.parent.syncCols()), defaultKey(r.parent, new HashSet<String>(r.parent.syncCols())), false);
+          List<String> missing = new ArrayList<String>(r.parent.colNames());
+          missing.removeAll(r.parent.syncCols());
+          if (!missing.isEmpty()) {
+            comment(sb, "", msg("datasync-c-nosrc", sqlName(r.parent), join(missing)));
+          }
         }
       }
       for (Ref r : refs.values()) {
@@ -791,7 +842,7 @@ public class DataSyncGenerator {
       }
       sb.append(");\n");
       sb.append("end;\n/\n");
-      return sb.toString();
+      return noEmptyLines(sb.toString());
     }
 
     /** Klucze obce tabeli z obsluga (rekurencyjnie tabele nadrzedne); pozostale - uwaga w naglowku */
@@ -814,7 +865,11 @@ public class DataSyncGenerator {
           continue;
         }
         String rc = fk.rCols.get(0);
-        Set<String> all = new HashSet<String>(p.colNames());
+        if (p.srcError != null || !p.syncCols().contains(rc)) {
+          note(msg("datasync-c-fk-copy", desc, msg("datasync-r-nosource", sourceName(p), p.srcError == null ? rc : p.srcError)));
+          continue;
+        }
+        Set<String> all = new HashSet<String>(p.syncCols());
         boolean byNatural = p.isSurrogate() && p.pk.cols.get(0).equals(rc) && naturalKey(p, all) != null;
         if (p.isSurrogate() && p.pk.cols.get(0).equals(rc) && !byNatural) {
           note(msg("datasync-c-fk-copy", desc, msg("datasync-r-nonk", sqlName(p))));
@@ -923,7 +978,7 @@ public class DataSyncGenerator {
     /** Kopia wiersza tabeli nadrzednej ze zrodla (wraz z jej wierszami nadrzednymi) */
     void sync(StringBuilder sb, Ref r) {
       Table p = r.parent;
-      Set<String> all = new LinkedHashSet<String>(p.colNames());
+      Set<String> all = new LinkedHashSet<String>(p.syncCols());
       Map<String, Ref> pRefs = refsFor(p, all, false);
       String bk = busyKey(r, "p_val");
       sb.append("  ").append(syncHeader(r)).append(" is\n");
@@ -1141,15 +1196,7 @@ public class DataSyncGenerator {
     }
 
     String sourceName(Table p) {
-      // tabela nadrzedna w zrodle: ten sam wlasciciel co tabela docelowa -> wlasciciel tabeli z zapytania
-      String owner;
-      if (p.owner.equals(m.target.owner)) {
-        owner = m.source.owner;
-      } else {
-        owner = p.owner;
-      }
-      String s = (owner == null ? "" : id(owner) + ".") + id(p.name);
-      return m.source.link == null ? s : s + "@" + m.source.link;
+      return DataSyncGenerator.sourceName(m, p);
     }
 
     String sqlName(Table t) {
@@ -1182,6 +1229,23 @@ public class DataSyncGenerator {
       return name.toLowerCase(Locale.ENGLISH);
     }
     return "\"" + name.replace("\"", "\"\"") + "\"";
+  }
+
+  /**
+   * Edytor SQL Orbady dzieli tekst na polecenia po pustych liniach - pusta linia w bloku PL/SQL (miedzy
+   * podprogramami, w zapytaniu uzytkownika) rozcinalaby blok. Puste linie zastepuje pusty komentarz "--".
+   */
+  static String noEmptyLines(String script) {
+    StringBuilder sb = new StringBuilder(script.length() + 64);
+    for (String line : script.split("\n", -1)) {
+      if (sb.length() > 0) {
+        sb.append("\n");
+      }
+      sb.append(line.trim().length() == 0 && sb.length() > 0 ? "--" : line);
+    }
+    // koncowy znak nowej linii bez komentarza
+    String s = sb.toString();
+    return s.endsWith("\n--") ? s.substring(0, s.length() - 2) : s;
   }
 
   public static String lit(String s) {

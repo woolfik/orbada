@@ -1,5 +1,12 @@
 # ORBADA — informacje o wydaniach
 
+## ORBADA 1.3.9 „Fuerteventura” (2026-11-16)
+
+### Poprawki
+
+- **Oracle, Wyrównaj dane: kolumny tabel nadrzędnych sprawdzane w źródle** — gdy bieżąca baza miała w tabeli nadrzędnej kolumny, których nie ma po drugiej stronie dblinka, skrypt kończył się błędem ORA-00904 (`"R"."KOLUMNA": niepoprawny identyfikator`). Teraz kopiowane są tylko kolumny obecne w obu bazach, a pominięte są wypisane w nagłówku skryptu.
+- **Oracle, Wyrównaj dane: skrypt bez pustych linii** — puste linie (między podprogramami i w zapytaniu) są zastąpione pustym komentarzem `--`, więc edytor SQL nie rozcina bloku PL/SQL przy wykonaniu.
+
 ## ORBADA 1.3.8 „Fuerteventura” (2026-11-14)
 
 ### Nowości
